@@ -1,5 +1,12 @@
 # AzFuncPsHelper
+
+[![Build status](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_apis/build/status/AzFuncPsHelper-CI)](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_build/latest?definitionId=1)
  
+[![Release status](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_apis/build/status/AzFuncPsHelper-CI)](https://vsrm.dev.azure.com/powershell-paris/_apis/public/Release/badge/6a078856-3ba9-4157-8b5a-49a3fd19558d/1/1)
+
+
+
+
 This project started as a side project to start working on OOP with a PowerShell module. I needed a subject and at this time I worked with Azure Function. 
 
  One of my main problems when working with Azure Functions v2 with PowerShell is to deal with Binding and Trigger. How to remember what binding I can use, which direction, which extension. It’s easy when using the portal, but if you need to create and modify function locally it’s not the best way. 
