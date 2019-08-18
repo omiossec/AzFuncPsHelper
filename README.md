@@ -8,11 +8,12 @@ The goal is to publish the module in the PowerShell Gallery.
  
 ## Usage
 
-There are 4 main objects used in this module 
-·       AzFuncApp, the representation of one Azure Functions App V2 for PowerShell
-·       AzFuncFunction, the representation of one Function in a an Azure  function App
-·       AzFuncFunctionTrigger, the representation of the trigger of a function in an Azure function App
-·       AzFuncFunctionBinding, the representation of binding of a function in an Azure function App
+There are 4 main objects used in this module
+
+* AzFuncApp, the representation of one Azure Functions App V2 for PowerShell
+* AzFuncFunction, the representation of one Function in a an Azure  function App
+* AzFuncFunctionTrigger, the representation of the trigger of a function in an Azure function App
+* AzFuncFunctionBinding, the representation of binding of a function in an Azure function App
  
 ### Create a new Function
 
