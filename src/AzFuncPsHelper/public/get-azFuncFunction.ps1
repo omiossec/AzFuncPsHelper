@@ -23,12 +23,12 @@ AzFunction object
 
 .EXAMPLE
 
-get-azFuncFunction -Path "c:\work\functionAppFolder\TimerFunction"
+get-azFuncFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction"
 Load the function TimerFunction from the FunctionAppFolder 
 
 .EXAMPLE
 
-get-azFuncFunction -Path "c:\work\functionAppFolder\TimerFunction" -OverWrite
+get-azFuncFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction" -OverWrite
 Load the function TimerFunction from the FunctionAppFolder and tell the module to overwrite the function folder
 
 

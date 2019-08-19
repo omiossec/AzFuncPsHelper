@@ -1,4 +1,4 @@
-function new-azFuncFunctionBinding 
+function get-azFuncFunctionTrigger
 {
     
     <#

@@ -11,7 +11,11 @@ Get-Module -Name $ModuleName | remove-module
 
 $ModuleInformation = Import-module -Name $ModuleManifestPath -PassThru
 
+
+
 Describe "$ModuleName Testing"{
+
+
 
 
     Context "$ModuleName Module manifest" {
@@ -51,10 +55,9 @@ Describe "$ModuleName Testing"{
 
     }
     InModuleScope $ModuleName {
-        Context "$ModuleName Cmdlet testing" {
+        Context "$($ModuleName) Cmdlet testing" {
 
-            $fakeFunctionAppName = "functionApp"
-            $fakeFunctionName = "testFunc"
+
 
             $FakeFunctionJsonData = @"
             {
@@ -115,7 +118,45 @@ Describe "$ModuleName Testing"{
                 ]
               }
 "@
-            
+              
+
+$fakeFunctionAppPath = (join-path "testdrive:\" -ChildPath "functionApp")
+$fakeFunctionPath = (join-path $fakeFunctionAppPath -ChildPath "testFunc")
+$fakeFunctionBinPath = (join-path $fakeFunctionAppPath -ChildPath "bin")
+$fakeFunctionJsonPath = (join-path $fakeFunctionPath -ChildPath "function.json")
+new-item -path $fakeFunctionPath -ItemType Directory
+new-item -path $fakeFunctionBinPath -ItemType Directory
+Set-Content $fakeFunctionJsonPath -value $FakeFunctionJsonData -Encoding utf8
+
+$FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath 
+
+            It "Should not Throw when create a new function" {
+                { new-azFuncFunction -FunctionAppPath $fakeFunctionAppPath -FunctionName "FakeFunction2" } | Should -not -Throw 
+            }
+
+            it "Should not throw when reading an existing function" {
+                { get-azFuncFunction -FunctionPath $fakeFunctionPath } | Should -not -Throw 
+            }
+
+            it "get-azFuncFunction return a AzFunction Object " {
+                $FunctionFakeObject.getType()   | Should -be "AzFunction"
+            }
+             
+            it "get-azFuncFunctionBinding  return the correct number of binding " {
+                (get-azFuncFunctionBinding -FunctionObject  $FunctionFakeObject).count | Should -be 6
+            }
+
+            it "get-azFuncFunctionTrigger  return the correct value " {
+                (get-azFuncFunctionTrigger -FunctionObject  $FunctionFakeObject).TriggerType | Should -be "timerTrigger"
+            }
+
+            it " new-azFuncFunction  return a AzFunction Object" {
+                (new-azFuncFunction  -FunctionAppPath  $fakeFunctionAppPath -FunctionName "test2").getType() |  Should -be "AzFunction"
+            }
+
+
+
+
         }
 
     }

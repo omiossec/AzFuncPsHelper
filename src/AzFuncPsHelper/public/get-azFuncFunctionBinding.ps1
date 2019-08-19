@@ -31,6 +31,6 @@ function get-azFuncFunctionBinding
 
     )
 
-    return $FunctionObject.AzFunctionsBinding
+    return $FunctionObject.Binding
     
 }
