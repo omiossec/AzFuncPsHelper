@@ -33,7 +33,7 @@ Copyright = 'Olivier Miossec 2019'
 Description = 'This module create binding for Azure Function v2'
 
 # Minimum version of the PowerShell engine required by this module
-PowerShellVersion = '6.0'
+PowerShellVersion = '5.1'
 
 # Name of the PowerShell host required by this module
 # PowerShellHostName = ''
