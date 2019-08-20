@@ -49,6 +49,6 @@ add-azFuncFunctionBinding  -FunctionObject $Function -BindingObject $Queue
  
 ## Release Note
 
-V 0.0.3 add get-azFuncFunctionApp
+V 0.0.3 add get-azFuncFunctionApp cmdlet
 V 0.0.2 Bug correction and unit/integration test
 V 0.0.1 Initial release
