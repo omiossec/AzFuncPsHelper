@@ -121,11 +121,13 @@ Describe "$ModuleName Testing"{
               
 
 $fakeFunctionAppPath = (join-path "testdrive:\" -ChildPath "functionApp")
+$fakeFUnctionAppHostJson = (join-path $fakeFunctionAppPath -ChildPath "host.json")
 $fakeFunctionPath = (join-path $fakeFunctionAppPath -ChildPath "testFunc")
 $fakeFunctionBinPath = (join-path $fakeFunctionAppPath -ChildPath "bin")
 $fakeFunctionJsonPath = (join-path $fakeFunctionPath -ChildPath "function.json")
 new-item -path $fakeFunctionPath -ItemType Directory
 new-item -path $fakeFunctionBinPath -ItemType Directory
+new-item -path $fakeFUnctionAppHostJson -ItemType File
 Set-Content $fakeFunctionJsonPath -value $FakeFunctionJsonData -Encoding utf8
 
 $FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath 
@@ -154,8 +156,20 @@ $FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath
                 (new-azFuncFunction  -FunctionAppPath  $fakeFunctionAppPath -FunctionName "test2").getType() |  Should -be "AzFunction"
             }
 
+            it " get-azFuncFunctionApp Should not Throw" {
+                { get-azFuncFunctionApp -FunctionAppName "Test"  -FunctionAppPath $fakeFunctionAppPath } |  Should -not -Throw 
+            }
+
+            $FunctionAppObject = get-azFuncFunctionApp -FunctionAppName "Test"  -FunctionAppPath $fakeFunctionAppPath
 
 
+            it "get-azFuncFunctionApp  return a AzFunctionsApp Object" {
+                $FunctionAppObject.getType() |  Should -be "AzFunctionsApp"
+            }
+
+            it "get-azFuncFunctionApp  return 1 Function" {
+                $FunctionAppObject.functions.Count|  Should -be 1
+            }
 
         }
 
