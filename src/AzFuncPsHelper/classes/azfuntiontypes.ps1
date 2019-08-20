@@ -30,7 +30,7 @@ class AzFunctionsApp {
     [string] $FunctionAppName
     [string] $FunctionAppPath
     hidden [Boolean] $FunctionAppExistLocaly = $false
-    [hashtable] $functionAppExtension
+    [hashtable] $functionAppExtension = @{}
     [AzFunction[]] $functions = @()
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath) {
@@ -53,8 +53,8 @@ class AzFunctionsApp {
 
                 [xml] $CsPRojetExtenstionItem = Get-Content -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj")
 
-                foreach ($extension in $CsPRojetExtenstionItem) {
-
+                foreach ($extension in $CsPRojetExtenstionItem.Project.ItemGroup.PackageReference) {
+                    
                     $this.functionAppExtension.Add($extension.Include, $extension.Version)
 
                 }
@@ -179,8 +179,13 @@ class AzFunction {
 
     [void] WriteFunction () {
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+
         if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
             remove-item -Path $FunctionConfigFile -Force
+        }
+
+        if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
+            new-item -Path $this.FunctionPath -ItemType Directory
         }
 
         new-item -ItemType File -Path $FunctionConfigFile 
