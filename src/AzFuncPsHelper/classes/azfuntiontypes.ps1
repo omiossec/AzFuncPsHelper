@@ -179,8 +179,13 @@ class AzFunction {
 
     [void] WriteFunction () {
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+
         if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
             remove-item -Path $FunctionConfigFile -Force
+        }
+
+        if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
+            new-item -Path $this.FunctionPath -ItemType Directory
         }
 
         new-item -ItemType File -Path $FunctionConfigFile 
