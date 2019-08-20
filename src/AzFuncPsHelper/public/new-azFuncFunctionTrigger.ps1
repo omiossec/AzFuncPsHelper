@@ -30,12 +30,20 @@ function new-azFuncFunctionTrigger
     [OutputType([AzFunctionsTrigger])]
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true, ParameterSetName = "serviceBusTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "queueTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "blobTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "timerTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "httpTrigger")]
         [ValidateSet("queueTrigger","timerTrigger", "httpTrigger","serviceBusTrigger","blobTrigger")]
         [string]
         $TriggerType,   
 
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true, ParameterSetName = "serviceBusTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "queueTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "blobTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "timerTrigger")]
+        [parameter(Mandatory = $true, ParameterSetName = "httpTrigger")]
         [string]
         $TriggerName,   
 
@@ -46,9 +54,12 @@ function new-azFuncFunctionTrigger
         $connection,    
 
         [parameter(Mandatory = $true, ParameterSetName = "queueTrigger")]
-        [parameter(Mandatory = $true, ParameterSetName = "serviceBusTrigger")]
         [string]
         $queueName, 
+
+        [parameter(Mandatory = $true, ParameterSetName = "serviceBusTrigger")]
+        [string]
+        $ServiceBusqueueName, 
 
         [parameter(Mandatory = $true, ParameterSetName = "timerTrigger")]
         [string]
@@ -63,7 +74,7 @@ function new-azFuncFunctionTrigger
         [string]
         $authLevel = "function", 
 
-        [parameter( ParameterSetName = "blobTrigger")]
+        [parameter(Mandatory = $true,  ParameterSetName = "blobTrigger")]
         [string]
         $path 
     )
@@ -82,7 +93,7 @@ function new-azFuncFunctionTrigger
             return [timerTrigger]::new($triggerName,  $Schedule)
         }
         "serviceBusTrigger" {
-            return [serviceBusTrigger]::new($triggerName,  $queueName, $connection)
+            return [serviceBusTrigger]::new($triggerName,  $ServiceBusqueueName, $connection)
         }
 
     }

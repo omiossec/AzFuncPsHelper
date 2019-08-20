@@ -171,6 +171,22 @@ $FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath
                 $FunctionAppObject.functions.Count|  Should -be 1
             }
 
+            it "new-azFuncFunctionTrigger with QueueTrigger Should not Throw" {
+                { new-azFuncFunctionTrigger -TriggerType queueTrigger -TriggerName que -connection con -queueName de } |  Should -not -Throw 
+            }
+
+            it "new-azFuncFunctionTrigger with blobTrigger Should not Throw" {
+                { new-azFuncFunctionTrigger -TriggerType blobTrigger -TriggerName test -connection test -path path } |  Should -not -Throw 
+            }
+
+            it "new-azFuncFunctionTrigger with timerTrigger Should not Throw" {
+                { new-azFuncFunctionTrigger -TriggerType timerTrigger -TriggerName test -Schedule "test" } |  Should -not -Throw 
+            }
+
+            it "new-azFuncFunctionTrigger with httpTrigger Should not Throw" {
+                { new-azFuncFunctionTrigger -TriggerType httpTrigger -TriggerName test -methods @("post","get") } |  Should -not -Throw 
+            }
+
         }
 
     }
