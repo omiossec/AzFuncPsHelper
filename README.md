@@ -2,7 +2,6 @@
 
 [![Build status](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_apis/build/status/AzFuncPsHelper-CI)](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_build/latest?definitionId=1)
  
-[![Release status](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_apis/build/status/AzFuncPsHelper-CI)](https://vsrm.dev.azure.com/powershell-paris/_apis/public/Release/badge/6a078856-3ba9-4157-8b5a-49a3fd19558d/1/1)
 
 
 
@@ -49,6 +48,6 @@ add-azFuncFunctionBinding  -FunctionObject $Function -BindingObject $Queue
  
 ## Release Note
 
-V 0.0.3 add get-azFuncFunctionApp cmdlet and bug correction on trigger
-V 0.0.2 Bug correction and unit/integration test
-V 0.0.1 Initial release
+* V 0.0.3 add get-azFuncFunctionApp cmdlet and bug correction on trigger
+* V 0.0.2 Bug correction and unit/integration test
+* V 0.0.1 Initial release
