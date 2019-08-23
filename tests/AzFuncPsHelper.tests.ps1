@@ -187,6 +187,35 @@ $FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath
                 { new-azFuncFunctionTrigger -TriggerType httpTrigger -TriggerName test -methods @("post","get") } |  Should -not -Throw 
             }
 
+            it "test-azFuncFunctionBinding with outputQueueItem and $FunctionFakeObject Should not Throw" {
+                { test-azFuncFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem" } |  Should -not -Throw 
+            }
+
+
+            it "test-azFuncFunctionBinding with outputQueueItem and $FunctionFakeObject return $true" {
+                (test-azFuncFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem") |  Should -be $true
+            }
+
+            it "test-azFuncFunctionBinding with fakeBinding and $FunctionFakeObject return $false" {
+                (test-azFuncFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "fakeBinding") |  Should -be $false
+            }
+
+            it "remove-azFuncFunctionBinding with FakeBinding and $FunctionFakeObject Should  Throw" {
+                { remove-azFuncFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "FakeBinding" } |  Should -Throw 
+            }
+
+            # Removing a Binding
+
+            it "remove-azFuncFunctionBinding with FakeBinding and $FunctionFakeObject Should  Throw" {
+                { remove-azFuncFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem" } |  Should -not -Throw 
+            }
+
+            
+
+            it "get-azFuncFunctionBinding  should return the correct number of binding, 5 after " {
+                (get-azFuncFunctionBinding -FunctionObject  $FunctionFakeObject).count | Should -be 5
+            }
+
         }
 
     }

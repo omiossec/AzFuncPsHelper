@@ -177,6 +177,39 @@ class AzFunction {
 
     }
 
+    [boolean] TestAzFuncBinding ([string] $BindingName) {
+
+        $SearchResult = $false 
+
+        foreach ($binding in $this.Binding){
+
+            if ($binding.BindingName -eq $BindingName) {
+                $SearchResult = $true 
+            }
+
+        }
+
+
+        return $SearchResult
+    }
+
+    [void] RemoveAzFuncBinding ([string] $BindingName) {
+
+        $NewBindingArray = @()
+
+        foreach ($binding in $this.Binding){
+
+            if ($binding.BindingName -ne $BindingName) {
+               
+                $NewBindingArray += $binding
+            }
+
+        }
+
+        $this.Binding = $NewBindingArray
+
+    }
+
     [void] WriteFunction () {
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
 
