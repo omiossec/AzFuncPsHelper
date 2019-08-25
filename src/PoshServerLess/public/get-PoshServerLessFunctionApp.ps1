@@ -1,4 +1,4 @@
-function get-azFuncFunctionApp
+function get-PoshServerlessFunctionApp
 {
 
     [OutputType([AzFunctionsApp])]

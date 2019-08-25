@@ -1,4 +1,4 @@
-function update-azFuncFunctionTrigger 
+function update-PoshServerlessFunctionTrigger 
 {
 
     <#

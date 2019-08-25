@@ -1,4 +1,4 @@
-function write-azFuncFunction 
+function write-PoshServerlessFunction 
 {
     <#
     .SYNOPSIS
@@ -16,7 +16,7 @@ function write-azFuncFunction
 
    
     .EXAMPLE  
-
+    $AzFunctionObject | write-PoshServerlessFunction 
            
     #>
 
@@ -25,15 +25,15 @@ function write-azFuncFunction
     param(
 
 
-        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
         [AzFunction]
         $FunctionObject
 
     )
-    if ($FunctionObject.testAzFunction()) {
+
+  
         $FunctionObject.WriteFunction()
 
-    }
-
+  
 
 }

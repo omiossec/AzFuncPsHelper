@@ -103,11 +103,18 @@ class AzFunction {
         $this.FunctionExist=  test-path -Path $this.FunctionPath -ErrorAction SilentlyContinue
     }
 
-    hidden [void] ControlHttpBing() {
-        if ($this.TriggerBinding.TriggerType -eq "http") {
-
-
+    hidden [Boolean] TestHttpOutBinding() {
+        $HttpControl = $false
+        if ($this.TriggerBinding.TriggerType -eq "http") { 
+            foreach ($binding in $this.Binding) {
+                if (($binding.BindingDirection -eq "out") -and ($binding.BindingType -eq "http")) {
+                    $HttpControl = $true
+                }
+            }
+        } else {
+            $HttpControl = $true
         }
+        return $HttpControl
     }
 
     [void] BuildJsonFunction() {
@@ -145,9 +152,7 @@ class AzFunction {
 
     [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
        
-        if ( $null -ne $this.Binding) {
-            $this.Binding.count
-        }
+
         $this.Binding += $BindingObject
         
     }
@@ -164,11 +169,12 @@ class AzFunction {
     }
 
     [Boolean] testAzFunction () {
-
-        if (($this.TriggerBinding.count -gt 1) -and ($this.TriggerBinding.TriggerType -eq "http") ) {
+        
+        
+        if (($this.Binding.count -ge 1) -and ($this.TriggerBinding.TriggerType -eq "http") ) {
             return $true
         }
-        elseif (($this.TriggerBinding.count -ge 0) -and ($this.TriggerBinding.TriggerType -ne "http") ) {
+        elseif (($this.Binding.count -ge 0) -and ($this.TriggerBinding.TriggerType -ne "http") -and ($null  -ne $this.TriggerBinding) ) {
             return $true
         }
         else {
@@ -211,104 +217,138 @@ class AzFunction {
     }
 
     [void] WriteFunction () {
+        
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+       
+        if ($this.testAzFunction() -and $this.TestHttpOutBinding()) {
 
-        if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
-            remove-item -Path $FunctionConfigFile -Force
+            if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
+                try {
+                     remove-item -Path $FunctionConfigFile -Force
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }
+     
+             }
+     
+             if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
+                 try {
+                     new-item -Path $this.FunctionPath -ItemType Directory
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }           
+             }
+     
+             try {
+                 new-item -ItemType File -Path $FunctionConfigFile 
+     
+                 $this.BuildJsonFunction()
+         
+                 Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
+             }
+             catch {
+                 Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+             }
+        }
+        else {  
+            throw "You can not have a function without trigger or a http trigger without a http out binding"
         }
 
-        if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
-            new-item -Path $this.FunctionPath -ItemType Directory
-        }
 
-        new-item -ItemType File -Path $FunctionConfigFile 
 
-        $this.BuildJsonFunction()
-
-        Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
     }
 
     [void] LoadFunction () {
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
         if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
 
-            $FunctionJsonConfig = Get-Content $FunctionConfigFile -Raw | ConvertFrom-Json
+            try {
+                $FunctionJsonConfig = Get-Content $FunctionConfigFile -Raw | ConvertFrom-Json
 
-            ForEach ($Binding in $FunctionJsonConfig.bindings) {
-            
-                if ($Binding.Type -like "*Trigger") {
-
-                    switch ($Binding.Type) {
-                        "timerTrigger" { 
-                            $this.AddTriger([timerTrigger]::new($Binding.name, $Binding.Schedule))
-                            
-                         }
-                         "queueTrigger" {
-                            
-                            $this.AddTriger([queueTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
-                         }
-                         "serviceBusTrigger" {
-                            $this.AddTriger([serviceBusTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
-
-                         }
-                         "blobTrigger" {
-                            $this.AddTriger( [blobTrigger]::new($Binding.name, $Binding.path, $Binding.connection))
-                         }
-                         "httpTrigger" {
-                            $this.AddTriger( [httpTrigger]::new($Binding.name, $Binding.authLevel, $Binding.methods))
-                         }
-                    }
-                }
-                else {
-                    
-                    switch ($Binding.Type) { 
-                        "http" {
-                            $this.AddBinding([http]::new($Binding.name))
-                        }
-                        "table" {
-                            if ($Binding.Direction -eq "in") {
+                ForEach ($Binding in $FunctionJsonConfig.bindings) {
+                
+                    if ($Binding.Type -like "*Trigger") {
+    
+                        switch ($Binding.Type) {
+                            "timerTrigger" { 
+                                $this.AddTriger([timerTrigger]::new($Binding.name, $Binding.Schedule))
                                 
-                                [tableIn]$TableInBinding = [tableIn]::new($Binding.name, $Binding.tableName, $Binding.connection)
-
-                                if ($null -ne $Binding.partitionKey) {
-                                    $TableInBinding.partitionKey = $Binding.partitionKey
-                                }
-
-                                if ($null -ne $Binding.rowKey) {
-                                    $TableInBinding.rowKey = $Binding.rowKey
-                                }
-
-                                if ($null -ne $Binding.take) {
-                                    $TableInBinding.take = $Binding.take
-                                }
-
-                                if ($null -ne $Binding.filter) {
-                                    $TableInBinding.filter = $Binding.filter
-                                }
-
-                                $this.AddBinding($TableInBinding)
-                            }
-                            else {
-                                $this.AddBinding( [table]::new($Binding.name, $Binding.tableName, $Binding.connection))
-                            }
+                             }
+                             "queueTrigger" {
+                                
+                                $this.AddTriger([queueTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
+                             }
+                             "serviceBusTrigger" {
+                                $this.AddTriger([serviceBusTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
+    
+                             }
+                             "blobTrigger" {
+                                $this.AddTriger( [blobTrigger]::new($Binding.name, $Binding.path, $Binding.connection))
+                             }
+                             "httpTrigger" {
+                                $this.AddTriger( [httpTrigger]::new($Binding.name, $Binding.authLevel, $Binding.methods))
+                             }
                         }
-                        "blob" {
-                            
-                            $this.AddBinding([blob]::new($Binding.direction, $Binding.name, $Binding.path, $binding.connection))
-                            
-                        }
-                        "queue" {
-                            $this.AddBinding([queue]::new($Binding.name, $Binding.queueName , $Binding.connection))
-
-                        }
-
                     }
-
+                    else {
+                        
+                        switch ($Binding.Type) { 
+                            "http" {
+                                $this.AddBinding([http]::new($Binding.name))
+                            }
+                            "table" {
+                                if ($Binding.Direction -eq "in") {
+                                    
+                                    [tableIn]$TableInBinding = [tableIn]::new($Binding.name, $Binding.tableName, $Binding.connection)
+    
+                                    if ($null -ne $Binding.partitionKey) {
+                                        $TableInBinding.partitionKey = $Binding.partitionKey
+                                    }
+    
+                                    if ($null -ne $Binding.rowKey) {
+                                        $TableInBinding.rowKey = $Binding.rowKey
+                                    }
+    
+                                    if ($null -ne $Binding.take) {
+                                        $TableInBinding.take = $Binding.take
+                                    }
+    
+                                    if ($null -ne $Binding.filter) {
+                                        $TableInBinding.filter = $Binding.filter
+                                    }
+    
+                                    $this.AddBinding($TableInBinding)
+                                }
+                                else {
+                                    $this.AddBinding( [table]::new($Binding.name, $Binding.tableName, $Binding.connection))
+                                }
+                            }
+                            "blob" {
+                                
+                                $this.AddBinding([blob]::new($Binding.direction, $Binding.name, $Binding.path, $binding.connection))
+                                
+                            }
+                            "queue" {
+                                $this.AddBinding([queue]::new($Binding.name, $Binding.queueName , $Binding.connection))
+    
+                            }
+    
+                        }
+    
+                    }
+    
                 }
-
+    
+                
             }
-
-
+            catch [System.ArgumentException] {
+                Write-Error -Message "Error while reading the json file"
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
 
         }
     }
@@ -396,6 +436,7 @@ class AzFunctionsBinding {
 
     [string] $BindingName
     [string] $BindingDirection
+    [string] $BindingType
     
 
 }
@@ -409,6 +450,7 @@ class blob : AzFunctionsBinding {
         $this.BindingName = $name
         $this.path = $Path
         $this.connection = $connection
+        $this.BindingType = "blob"
         
     }
     
@@ -421,6 +463,7 @@ class http : AzFunctionsBinding {
     http ([string] $Name) {
         $this.BindingName = $Name
         $this.BindingDirection = "out"
+        $this.BindingType = "http"
     }
 }
 
@@ -433,6 +476,7 @@ class queue : AzFunctionsBinding {
         $this.connection = $Connection
         $this.queueName = $QueuName
         $this.BindingDirection = "out"
+        $this.BindingType = "queue"
     }
 }
 
@@ -448,6 +492,7 @@ class table : AzFunctionsBinding {
         $this.connection = $Connection
         $this.tableName = $tableName
         $this.BindingDirection = "out"
+        $this.BindingType = "table"
     }
 }
 
@@ -465,6 +510,7 @@ class tableIn : AzFunctionsBinding {
         $this.connection = $Connection
         $this.tableName = $tableName
         $this.BindingDirection = "in"
+        $this.BindingType = "table"
     }
 
 }

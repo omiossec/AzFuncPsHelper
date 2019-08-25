@@ -1,7 +1,7 @@
-function test-azFuncFunctionBinding 
-{
+function remove-PoshServerlessFunctionBinding {
 
-    [OutputType([boolean])]
+
+
     [CmdletBinding()]
     param(
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
@@ -14,5 +14,11 @@ function test-azFuncFunctionBinding
 
     )
 
-    return $FunctionObject.TestAzFuncBinding($BindingName)
+    if (test-PoshServerlessFunctionBinding -FunctionObject $FunctionObject -BindingName $BindingName) {
+        $FunctionObject.RemoveAzFuncBinding($BindingName)
+    }
+    else {
+        throw "Error: No Binding found"
+    }
+
 }
