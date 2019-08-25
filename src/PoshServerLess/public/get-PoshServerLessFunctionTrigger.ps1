@@ -1,4 +1,4 @@
-function get-azFuncFunctionTrigger
+function get-PoshServerlessFunctionTrigger
 {
     
     <#
@@ -16,7 +16,7 @@ function get-azFuncFunctionTrigger
         
     .EXAMPLE
     
-    $FunctionObjectVar | get-azFuncFunctionBinding 
+    $FunctionObjectVar | get-PoshServerlessFunctionBinding 
     
 
            

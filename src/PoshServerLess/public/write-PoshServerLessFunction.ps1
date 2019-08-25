@@ -1,4 +1,4 @@
-function write-azFuncFunction 
+function write-PoshServerlessFunction 
 {
     <#
     .SYNOPSIS
@@ -16,7 +16,7 @@ function write-azFuncFunction
 
    
     .EXAMPLE  
-    $AzFunctionObject | write-azFuncFunction 
+    $AzFunctionObject | write-PoshServerlessFunction 
            
     #>
 

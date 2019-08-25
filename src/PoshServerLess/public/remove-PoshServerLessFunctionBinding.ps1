@@ -1,4 +1,4 @@
-function remove-azFuncFunctionBinding {
+function remove-PoshServerlessFunctionBinding {
 
 
 
@@ -14,7 +14,7 @@ function remove-azFuncFunctionBinding {
 
     )
 
-    if (test-azFuncFunctionBinding -FunctionObject $FunctionObject -BindingName $BindingName) {
+    if (test-PoshServerlessFunctionBinding -FunctionObject $FunctionObject -BindingName $BindingName) {
         $FunctionObject.RemoveAzFuncBinding($BindingName)
     }
     else {

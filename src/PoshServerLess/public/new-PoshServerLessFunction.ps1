@@ -1,4 +1,4 @@
-function new-azFuncFunction 
+function new-PoshServerlessFunction 
 {
     <#
     .SYNOPSIS
@@ -26,7 +26,7 @@ function new-azFuncFunction
     
     .EXAMPLE
     
-    new-azFuncFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
+    new-PoshServerlessFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
     create a new azFunction Object
            
     #>

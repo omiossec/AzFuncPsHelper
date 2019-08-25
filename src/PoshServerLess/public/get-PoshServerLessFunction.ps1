@@ -1,4 +1,4 @@
-function get-azFuncFunction 
+function get-PoshServerlessFunction 
 {
 <#
 .SYNOPSIS
@@ -23,12 +23,12 @@ AzFunction object
 
 .EXAMPLE
 
-get-azFuncFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction"
+get-PoshServerlessFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction"
 Load the function TimerFunction from the FunctionAppFolder 
 
 .EXAMPLE
 
-get-azFuncFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction" -OverWrite
+get-PoshServerlessFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction" -OverWrite
 Load the function TimerFunction from the FunctionAppFolder and tell the module to overwrite the function folder
 
 #>

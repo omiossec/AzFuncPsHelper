@@ -1,4 +1,4 @@
-function test-azFuncFunctionBinding 
+function test-PoshServerlessFunctionBinding 
 {
     <#
     .SYNOPSIS
@@ -21,7 +21,7 @@ function test-azFuncFunctionBinding
 
     .EXAMPLE
 
-    test-azFuncFunctionBinding -FunctionObject $FunctionObject -BindingName BindingNameToTest
+    test-PoshServerlessFunctionBinding -FunctionObject $FunctionObject -BindingName BindingNameToTest
 
     #>
     [OutputType([boolean])]

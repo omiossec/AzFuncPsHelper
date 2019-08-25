@@ -1,4 +1,4 @@
-function add-azFuncFunctionBinding 
+function add-PoshServerlessFunctionBinding 
 {
 
     <#
