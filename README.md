@@ -48,6 +48,7 @@ add-azFuncFunctionBinding  -FunctionObject $Function -BindingObject $Queue
  
 ## Release Note
 
+* V 0.0.5 Better error Handling and error correction
 * V 0.0.4 add test-azFuncFunctionBinding  and remove-azFuncFunctionBinding
 * V 0.0.3 add get-azFuncFunctionApp cmdlet and bug correction on trigger
 * V 0.0.2 Bug correction and unit/integration test

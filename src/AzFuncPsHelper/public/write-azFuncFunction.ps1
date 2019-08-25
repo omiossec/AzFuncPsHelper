@@ -16,7 +16,7 @@ function write-azFuncFunction
 
    
     .EXAMPLE  
-
+    $AzFunctionObject | write-azFuncFunction 
            
     #>
 
@@ -25,15 +25,15 @@ function write-azFuncFunction
     param(
 
 
-        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
         [AzFunction]
         $FunctionObject
 
     )
-    if ($FunctionObject.testAzFunction()) {
+
+  
         $FunctionObject.WriteFunction()
 
-    }
-
+  
 
 }

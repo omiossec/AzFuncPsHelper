@@ -32,16 +32,25 @@ function new-azFuncFunctionBinding
     [OutputType([AzFunctionsBinding])]
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true, ParameterSetName = "blob")]
+        [parameter(Mandatory = $true, ParameterSetName = "queue")]
+        [parameter(Mandatory = $true, ParameterSetName = "table")]
+        [parameter(Mandatory = $true, ParameterSetName = "http")]
         [ValidateSet("in","Out")]
         [string]
         $Direction, 
 
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true, ParameterSetName = "blob")]
+        [parameter(Mandatory = $true, ParameterSetName = "queue")]
+        [parameter(Mandatory = $true, ParameterSetName = "table")]
+        [parameter(Mandatory = $true, ParameterSetName = "http")]
         [string]
         $BindingName,       
 
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true, ParameterSetName = "blob")]
+        [parameter(Mandatory = $true, ParameterSetName = "queue")]
+        [parameter(Mandatory = $true, ParameterSetName = "table")]
+        [parameter(Mandatory = $true, ParameterSetName = "http")]
         [ValidateSet("blob","http","queue", "table")]
         [string]
         $BindingType,   

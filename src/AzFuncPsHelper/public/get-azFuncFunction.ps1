@@ -31,7 +31,6 @@ Load the function TimerFunction from the FunctionAppFolder
 get-azFuncFunction -FunctionPath "c:\work\functionAppFolder\TimerFunction" -OverWrite
 Load the function TimerFunction from the FunctionAppFolder and tell the module to overwrite the function folder
 
-
 #>
 
     [OutputType([AzFunction])]

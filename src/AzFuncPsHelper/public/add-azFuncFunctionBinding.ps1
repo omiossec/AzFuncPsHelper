@@ -28,11 +28,11 @@ function add-azFuncFunctionBinding
     [CmdletBinding()]
     param(
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [AzFunctionsBinding[]]
+        [AzFunctionsBinding]
         $BindingObject,
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [string]
+        [AzFunction]
         $FunctionObject
 
     )

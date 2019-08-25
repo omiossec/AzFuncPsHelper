@@ -216,6 +216,33 @@ $FunctionFakeObject = get-azFuncFunction -FunctionPath $fakeFunctionPath
                 (get-azFuncFunctionBinding -FunctionObject  $FunctionFakeObject).count | Should -be 5
             }
 
+            # create a new function
+            $NewFakeFunction = new-azFuncFunction -FunctionAppPath $fakeFunctionAppPath -FunctionName "TestFunc02"
+
+
+
+            it "Generate and error When try to create a function without any trigger" {
+                {  write-azFuncFunction  -FunctionObject $NewFakeFunction } | Should  -Throw 
+            }
+
+            $trigger = new-azFuncFunctionTrigger -TriggerType httpTrigger -TriggerName testHttp -methods @("POST")
+
+            
+
+            it "Generate and error When try to create an HTTP function without a out binding" {
+                {  write-azFuncFunction  -FunctionObject $NewFakeFunction } | Should -Throw 
+            }
+
+            update-azFuncFunctionTrigger -triggerObject $trigger -FunctionObject $NewFakeFunction
+
+            it "Doesn't fail when creating an Http out binding" {
+                {$HttpOutBinding = new-azFuncFunctionBinding -Direction "out" -BindingName "outHttp" -BindingType "http"} | Should -not -Throw 
+            }
+
+            it "do not generate and error When try to create a function with trigger" {
+                {  write-azFuncFunction  -FunctionObject $NewFakeFunction } | Should -not -Throw 
+            }
+            
         }
 
     }
