@@ -1,34 +1,10 @@
-enum BindingIn {
-    blob
-    table
-    
-
-}
-
-enum Bindingout {
-    queue
-    blob
-    table
-    http
-}
-
-enum Trigger {
-    timerTrigger
-    serviceBusTrigger
-    queueTrigger
-    httpTrigger
-    blobTrigger
-}
-
-enum Direction {
-    in
-    out
-}
 
 class AzFunctionsApp {
 
     [string] $FunctionAppName
     [string] $FunctionAppPath
+    [string] $RessourceGroup
+    [string] $FunctionHostName
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
     [AzFunction[]] $functions = @()
@@ -64,10 +40,150 @@ class AzFunctionsApp {
         
     }
 
+    [void] RemoveFunction ([string] $Functionname) {
+
+        $NewFunctiongArray = @()
+        $functionPath = $null
+
+        foreach ($Azfunction in $this.functions){
+
+            if ($Azfunction.FunctionName -ne $Functionname) {
+               
+                $NewFunctiongArray += $Azfunction
+            }
+            else {
+                $functionPath = $Azfunction.FunctionPath
+            }
+
+        }
+
+        $this.functions = $NewFunctiongArray
+
+        if ($null -ne $functionPath) {
+
+            try {
+                remove-item -path $functionPath -Force -Recurse
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
+        }   
+
+    }
+
+    [void] AddFunction ([AzFunction] $FunctionObject) {
+
+        
+
+        if ( (Split-Path -Path $FunctionObject.FunctionPath -Parent) -eq $this.FunctionAppPath) {
+
+            if (!(test-path -Path $FunctionObject.FunctionPath -ErrorAction SilentlyContinue)) {
+                $FunctionObject.WriteFunction()
+            }
+
+            $this.functions += $FunctionObject
+        }
+        else {
+            throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
+        }
+
+
+        
+    }
+
+    [boolean] FunctionAppCreated () {
+        return $false
+    }
+
+    [void] deployFunctionApp () {
+
+    }
+
+    [void] getFunctiondeploymentStatus ([String] $DeployementUserName, [String] $DeployementPassword) {
+
+    }
+
     AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
         $this.init($FunctionAppName, $functionAppPath)
     }
 
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
+    }
+
+    [void] PublishFunctionApp ([String] $DeployementUserName, [String] $DeployementPassword ) {
+
+        $FunctionZippedFolderPath = $this.CompressFunction()
+
+        if ($null -ne $FunctionZippedFolderPath) {
+
+            try {
+                Publish-AzWebapp -ResourceGroupName $this.RessourceGroup -Name $this.FunctionAppName -ArchivePath $FunctionZippedFolderPath -force
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
+
+        }
+        else {
+            throw "Zip file $($FunctionZippedFolderPath) not found"
+        }
+    }
+
+    [string] CompressFunction () {
+
+        try {
+            $TmpFuncZipDeployFileName = [System.IO.Path]::GetRandomFileName()
+            $TmpFuncZipDeployFileName = $TmpFuncZipDeployFileName.remove($TmpFuncZipDeployFileName.Length - 4) + ".zip"
+            
+            $TmpFuncZipDeployPath = join-path -Path $ENV:tmp -ChildPath $TmpFuncZipDeployFileName
+
+            
+
+            $excludeFilesAndFolders = @(".git",".vscode","bin","Microsoft",".funcignore",".gitignore")
+
+            $FileToSendArray = @()
+
+            foreach ($file in get-childitem -Path $this.FunctionAppPath) {
+                    if ($file.name -notin $excludeFilesAndFolders) {
+                        $FileToSendArray += $file.fullname
+                    }
+            }
+
+            compress-archive -Path $FileToSendArray -DestinationPath $TmpFuncZipDeployPath
+            return $TmpFuncZipDeployPath
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            return $null
+        }
+
+        
+    }
+
+    
+
+    [boolean] TestAzConnection () {
+
+        try {
+            $AzContext = get-azContext 
+            if ($null -eq $AzContext) {
+                return $false
+            }
+            else {
+                return $true
+            }
+        }
+        catch [System.Management.Automation.CommandNotFoundException] {
+            write-error "No AZURE PowerShell module"
+            return $false
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            return $false
+        }
+         
+    }
 
 
 }
