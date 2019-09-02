@@ -20,7 +20,7 @@ $BuildFolder = join-path -path $SourceFolder  -childpath "generated"
 
 $BuildModulePath =  join-path -path $BuildFolder -ChildPath $ModuleName
 
-$BuildModuleDoc =  join-path -path $BuildModulePath -ChildPath "doc"
+$BuildModuleDoc =  join-path -path $BuildModulePath -ChildPath "docs"
 
 $BuildModuleClasses =  join-path -path $BuildModulePath -ChildPath "classes"
 
@@ -69,4 +69,14 @@ Update-ModuleManifest -Path $BuildModuleManifest -ModuleVersion $ModuleVersion
 
 Update-ModuleManifest -Path $BuildModuleManifest -RootModule "$($ModuleName).psm1"
 
- 
+Install-Module -Name platyPS -Scope CurrentUser
+Import-Module platyPS
+
+
+
+$ModuleInformation = Import-module -Name $BuildModuleManifest -PassThru
+
+
+
+New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc
+

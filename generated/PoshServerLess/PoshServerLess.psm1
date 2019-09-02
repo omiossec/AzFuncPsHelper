@@ -1,73 +1,251 @@
-enum BindingIn {
-    blob
-    table
-    
 
-}
 
-enum Bindingout {
-    queue
-    blob
-    table
-    http
-}
 
-enum Trigger {
-    timerTrigger
-    serviceBusTrigger
-    queueTrigger
-    httpTrigger
-    blobTrigger
-}
-
-enum Direction {
-    in
-    out
-}
 
 class AzFunctionsApp {
 
     [string] $FunctionAppName
     [string] $FunctionAppPath
+    [string] $RessourceGroup
+    [string] $FunctionHostName
+    [string] $FunctionAppStorageName
+    [string] $FunctionAppStorageShareName
+    [string] $FunctionAppLocation
+    
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
-    [AzFunction[]] $functions = @()
+    [AzFunction[]] $Azfunctions = @()
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath) {
 
         $this.FunctionAppName = $FunctionAppName
         $this.FunctionAppPath = $functionAppPath
 
-        if (test-path -Path $this.FunctionAppPath -ErrorAction SilentlyContinue) {
-            $this.FunctionAppExistLocaly = $true
-            $FunctionList = get-childitem -Path $this.FunctionAppPath -Exclude @("microsoft","bin","obj", "modules") -Directory
+        $this.ListFunction()
         
-            foreach ($function in $FunctionList) {
+    }
+
+    hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup) {
+
+        if ($this.TestAzConnection()) {
+            try {
+                $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $FunctionResourceGroup -Name $FunctionAppName 
+
+                $this.FunctionAppName = $FunctionAppName
+                $this.FunctionAppPath = $functionAppPath
+                $this.RessourceGroup = $FunctionResourceGroup
+
+                $this.FunctionAppLocation = $FunctionAppConfig.Location
+                $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
+                $WorkerRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+                $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
                 
-                $functionPath = join-path -Path $this.FunctionAppPath -ChildPath $function.name
-                $this.functions += [AzFunction]::new( $FunctionPath, $true)
+                $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
+                $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
+                $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
+                
+                $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
 
-            }
-
-            if (test-path -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj") -ErrorAction SilentlyContinue) {
-
-                [xml] $CsPRojetExtenstionItem = Get-Content -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj")
-
-                foreach ($extension in $CsPRojetExtenstionItem.Project.ItemGroup.PackageReference) {
-                    
-                    $this.functionAppExtension.Add($extension.Include, $extension.Version)
-
+                if ($FunctionExtVerion -ne "~2") {
+                    throw "Error this module only support Azure functions v2 with PowerShell"
                 }
-            }
+
+                $storageAccountObject = Get-AzStorageAccount -ResourceGroupName $FunctionResourceGroup -Name $FunctionStorageConfigHash.AccountName
+
+                $StorageFileObject = Get-AzStorageFile -ShareName $this.FunctionAppStorageShareName  -Context $storageAccountObject.Context -Path "/site/wwwroot"  | Get-AzStorageFile
            
+                GetFile -CloudFilesObject $StorageFileObject -context $storageAccountObject.Context -AzurePath "/site/wwwroot" -LocalPath $functionAppPath -AzureStorageShareName $this.FunctionAppStorageShareName
+                
+                $this.ListFunction()
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
         }
-        
+        else {
+            throw "Not connected to Azure, use Login-AzAccount first"
+        }
+    }
+
+    hidden [void] ListFunction () {
+
+        try {
+            if (test-path -Path $this.FunctionAppPath -ErrorAction SilentlyContinue) {
+                $this.FunctionAppExistLocaly = $true
+                $FunctionList = get-childitem -Path $this.FunctionAppPath -Exclude @("microsoft","bin","obj", "modules") -Directory
+            
+                foreach ($function in $FunctionList) {
+                    
+                    $functionPath = join-path -Path $this.FunctionAppPath -ChildPath $function.name
+                    $this.Azfunctions += [AzFunction]::new( $FunctionPath, $true)
+    
+                }
+    
+                if (test-path -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj") -ErrorAction SilentlyContinue) {
+    
+                    [xml] $CsPRojetExtenstionItem = Get-Content -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj")
+    
+                    foreach ($extension in $CsPRojetExtenstionItem.Project.ItemGroup.PackageReference) {
+                        
+                        $this.functionAppExtension.Add($extension.Include, $extension.Version)
+    
+                    }
+                }
+               
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        }
+ 
     }
 
     AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
         $this.init($FunctionAppName, $functionAppPath)
     }
 
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
+    }
+
+    [void] RemoveFunction ([string] $Functionname) {
+
+        $NewFunctiongArray = @()
+        $functionPath = $null
+
+        foreach ($Azfunction in $this.Azfunctions){
+
+            if ($Azfunction.FunctionName -ne $Functionname) {
+               
+                $NewFunctiongArray += $Azfunction
+            }
+            else {
+                $functionPath = $Azfunction.FunctionPath
+            }
+
+        }
+
+        $this.Azfunctions = $NewFunctiongArray
+
+        if ($null -ne $functionPath) {
+
+            try {
+                remove-item -path $functionPath -Force -Recurse
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
+        }   
+
+    }
+
+    [void] AddFunction ([AzFunction] $FunctionObject) {
+
+        
+
+        if ( (Split-Path -Path $FunctionObject.FunctionPath -Parent) -eq $this.FunctionAppPath) {
+
+            if (!(test-path -Path $FunctionObject.FunctionPath -ErrorAction SilentlyContinue)) {
+                $FunctionObject.WriteFunction()
+            }
+
+            $this.Azfunctions += $FunctionObject
+        }
+        else {
+            throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
+        }
+
+
+        
+    }
+
+    [boolean] FunctionAppCreated () {
+        return $false
+    }
+
+    [void] deployFunctionApp () {
+
+    }
+
+    [void] getFunctiondeploymentStatus ([String] $DeployementUserName, [String] $DeployementPassword) {
+
+    }
+
+    
+
+    [void] PublishFunctionApp () {
+
+        $FunctionZippedFolderPath = $this.CompressFunction()
+
+        if ($null -ne $FunctionZippedFolderPath) {
+
+            try {
+                Publish-AzWebapp -ResourceGroupName $this.RessourceGroup -Name $this.FunctionAppName -ArchivePath $FunctionZippedFolderPath -force
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
+
+        }
+        else {
+            throw "Zip file $($FunctionZippedFolderPath) not found"
+        }
+    }
+
+    [string] CompressFunction () {
+
+        try {
+            $TmpFuncZipDeployFileName = [System.IO.Path]::GetRandomFileName()
+            $TmpFuncZipDeployFileName = $TmpFuncZipDeployFileName.remove($TmpFuncZipDeployFileName.Length - 4) + ".zip"
+            
+            $TmpFuncZipDeployPath = join-path -Path $ENV:tmp -ChildPath $TmpFuncZipDeployFileName
+
+            
+
+            $excludeFilesAndFolders = @(".git",".vscode","bin","Microsoft",".funcignore",".gitignore")
+
+            $FileToSendArray = @()
+
+            foreach ($file in get-childitem -Path $this.FunctionAppPath) {
+                    if ($file.name -notin $excludeFilesAndFolders) {
+                        $FileToSendArray += $file.fullname
+                    }
+            }
+
+            compress-archive -Path $FileToSendArray -DestinationPath $TmpFuncZipDeployPath
+            return $TmpFuncZipDeployPath
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            return $null
+        }
+
+        
+    }
+
+    
+
+    [boolean] TestAzConnection () {
+
+        try {
+            $AzContext = get-azContext 
+            if ($null -eq $AzContext) {
+                return $false
+            }
+            else {
+                return $true
+            }
+        }
+        catch [System.Management.Automation.CommandNotFoundException] {
+            write-error "No AZURE PowerShell module"
+            return $false
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            return $false
+        }
+         
+    }
 
 
 }
@@ -515,6 +693,43 @@ class tableIn : AzFunctionsBinding {
 
 }
 
+
+
+function GetFile (
+    [object[]] $CloudFilesObject, 
+    [Microsoft.WindowsAzure.Commands.Common.Storage.LazyAzureStorageContext] $context, 
+    [string] $AzurePath= "/site/wwwroot", 
+    [string] $LocalPath,
+    [String] $AzureStorageShareName
+    ) { 
+
+    foreach  ($CloudFile in $CloudFilesObject) {
+
+        $fileobject = Get-AzStorageFile -ShareName $AzureStorageShareName -Context $context -Path $AzurePath | Get-AzStorageFile | where-object name -eq $CloudFile.name
+
+        if ($fileobject.GetType().ToString() -eq "Microsoft.Azure.Storage.File.CloudFile") {
+            
+            $relative = $AzurePath.replace("/site/wwwroot","")
+            $relative = $relative.replace("/","\")
+            $relative = Join-Path -Path $LocalPath -ChildPath $relative
+            $relative = Join-Path -Path $relative -ChildPath $fileobject.Name
+                     
+            $fileobject | Get-AzStorageFileContent -Destination $relative
+
+        }
+        elseif (($fileobject.name -ne "Microsoft") -or ($fileobject.name -ne "bin") ) {
+            
+            $azPath = $AzurePath + "/" +$fileobject.Name
+           
+            $FolderPath = join-path -Path $localPath -ChildPath ($azPath.replace("/site/wwwroot/","")).replace("/","\")
+
+            new-item -Path $FolderPath -ItemType Directory | Out-Null
+
+            $fileobject = Get-AzStorageFile -ShareName $AzureStorageShareName -Context $context -Path $azPath | Get-AzStorageFile
+            GetFile -CloudFilesObject $fileobject -context $context -AzurePath $azPath -LocalPath $localPath -AzureStorageShareName $AzureStorageShareName 
+        }
+    }
+}
 function add-PoshServerlessFunctionBinding 
 {
 
@@ -555,6 +770,46 @@ function add-PoshServerlessFunctionBinding
     )
 
     $FunctionObject.AddBinding($BindingObject)
+
+}
+function add-PoshServerLessFunctionToApp 
+{
+
+        <#
+    .SYNOPSIS
+    
+    Add a function object to an existing Function App Object
+    
+    .DESCRIPTION
+    
+    Add a function object to an existing Function App Object
+    
+    .PARAMETER FunctionObject
+    Specifies the function Object
+    
+    .PARAMETER FunctionAppObject
+    Specifie the Binding Object
+
+
+    
+    .EXAMPLE
+    
+           
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AzFunction]
+        $FunctionObject
+
+    )
+
+    $FunctionAppObject.AddFunction($FunctionObject)
 
 }
 function get-PoshServerlessFunction 
@@ -993,6 +1248,32 @@ function new-PoshServerlessFunctionTrigger
 
 
 }
+function publish-PoshServerLessFunctionApp 
+{
+<#
+
+
+#>
+
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact='Medium')]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipeline=$true)]
+        [ValidateNotNull()]
+        [AzFunctionsApp]
+        $FunctionAppObject
+
+    )
+
+
+    if ($PSCmdlet.ShouldProcess($FunctionAppObject.FunctionAppName,"Publish this Function to Azure, it will rewrite the entire App in Azure")) {
+
+        $FunctionAppObject.PublishFunctionApp()
+
+    }
+
+
+}
+
 function remove-PoshServerlesstionBinding 
 {
 
@@ -1020,6 +1301,115 @@ function remove-PoshServerlessFunctionBinding {
     else {
         throw "Error: No Binding found"
     }
+
+}
+function remove-PoshServerLessFunctionToApp
+{
+    <#
+    .SYNOPSIS
+    
+    Remove a function object to an existing Function App Object
+    
+    .DESCRIPTION
+    
+    Remove a function object to an existing Function App Object
+    It also remove the function from the disk
+    
+    .PARAMETER FunctionName
+    Specifies the function Name
+    
+    .PARAMETER FunctionAppObject
+    Specifie the Binding Object
+
+
+    
+    .EXAMPLE
+    
+           
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $FunctionName
+
+    )
+
+    $FunctionAppObject.RemoveFunction($FunctionName)
+
+
+}
+function sync-PoshServerlessFunctionApp 
+{
+    <#
+    .SYNOPSIS
+    
+    Download a function App content to the local workstation
+    
+    .DESCRIPTION
+    
+    Download a function App content to the local workstation
+    this cmdlet use Azure PowerShell, you need to install it install-module -name AZ -scope CurrentUser
+    You need a valid connexion to azure before, run login-azaccount before runing this cmdlet
+    
+    .PARAMETER FunctionName
+    The function name in Azure 
+    ex: MyPowerShellAzFunction 
+
+    .PARAMETER ResourceGroupName
+    The name of the ressouce group in Azure where the function app is 
+
+    .PARAMETER LocalFunctionPath
+    The local path to download Azure functions files and folder
+    The path should be empty
+    
+
+   
+    .EXAMPLE  
+    sync-PoshServerlessFunctionApp -FunctionName MyFunctionApp01 -ResourceGroupName MyRessourceGroup -LocalFunctionPath 'c:\work\Myfunction'           
+    #>
+
+
+    [OutputType([AzFunctionsApp])]
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+        [string]
+        $FunctionAppName,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $ResourceGroupName,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $LocalFunctionPath
+
+    )
+
+    if (test-path -Path $LocalFunctionPath -ErrorAction SilentlyContinue) {
+
+        if ((get-childitem -Path $LocalFunctionPath).count -gt 0) {
+            throw "The Path of The function $($LocalFunctionPath) is not empty"
+        }
+        
+      
+    } else {
+        try {
+            new-item -Path $LocalFunctionPath -ItemType Directory | out-null
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        }
+    }
+
+
+    return [AzFunctionsApp]::new($FunctionAppName, $LocalFunctionPath, $ResourceGroupName)
 
 }
 function test-PoshServerlessFunctionBinding 
