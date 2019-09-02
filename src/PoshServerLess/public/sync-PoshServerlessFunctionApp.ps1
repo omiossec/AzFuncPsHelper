@@ -55,7 +55,7 @@ function sync-PoshServerlessFunctionApp
       
     } else {
         try {
-            new-item -Path $LocalFunctionPath -ItemType Directory
+            new-item -Path $LocalFunctionPath -ItemType Directory | out-null
         }
         catch {
             Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"

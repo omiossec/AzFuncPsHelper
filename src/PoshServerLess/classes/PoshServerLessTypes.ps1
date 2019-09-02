@@ -33,6 +33,7 @@ class AzFunctionsApp {
 
                 $this.FunctionAppName = $FunctionAppName
                 $this.FunctionAppPath = $functionAppPath
+                $this.RessourceGroup = $FunctionResourceGroup
 
                 $this.FunctionAppLocation = $FunctionAppConfig.Location
                 $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
@@ -172,7 +173,7 @@ class AzFunctionsApp {
 
     
 
-    [void] PublishFunctionApp ([String] $DeployementUserName, [String] $DeployementPassword ) {
+    [void] PublishFunctionApp () {
 
         $FunctionZippedFolderPath = $this.CompressFunction()
 

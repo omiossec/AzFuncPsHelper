@@ -17,7 +17,7 @@ function publish-PoshServerLessFunctionApp
 
     if ($PSCmdlet.ShouldProcess($FunctionAppObject.FunctionAppName,"Publish this Function to Azure, it will rewrite the entire App in Azure")) {
 
-        
+        $FunctionAppObject.PublishFunctionApp()
 
     }
 
