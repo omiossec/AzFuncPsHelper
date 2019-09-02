@@ -70,6 +70,7 @@ publish-PoshServerLessFunctionApp -FunctionAppObject $FunctionApp
  
 ## Release Note
 
+* V 0.1.0 Publish and Sync to/from Azure Functions
 * V 0.0.6 Module rename to PoshServerLess
 * V 0.0.5 Better error Handling and error correction
 * V 0.0.4 add test-azFuncFunctionBinding  and remove-azFuncFunctionBinding
