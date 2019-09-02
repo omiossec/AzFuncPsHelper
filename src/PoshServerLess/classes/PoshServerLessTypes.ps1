@@ -1,43 +1,110 @@
 
+
+
+
 class AzFunctionsApp {
 
     [string] $FunctionAppName
     [string] $FunctionAppPath
     [string] $RessourceGroup
     [string] $FunctionHostName
+    [string] $FunctionAppStorageName
+    [string] $FunctionAppStorageShareName
+    [string] $FunctionAppLocation
+    
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
-    [AzFunction[]] $functions = @()
+    [AzFunction[]] $Azfunctions = @()
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath) {
 
         $this.FunctionAppName = $FunctionAppName
         $this.FunctionAppPath = $functionAppPath
 
-        if (test-path -Path $this.FunctionAppPath -ErrorAction SilentlyContinue) {
-            $this.FunctionAppExistLocaly = $true
-            $FunctionList = get-childitem -Path $this.FunctionAppPath -Exclude @("microsoft","bin","obj", "modules") -Directory
+        $this.ListFunction()
         
-            foreach ($function in $FunctionList) {
+    }
+
+    hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup) {
+
+        if ($this.TestAzConnection()) {
+            try {
+                $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $FunctionResourceGroup -Name $FunctionAppName 
+
+                $this.FunctionAppName = $FunctionAppName
+                $this.FunctionAppPath = $functionAppPath
+
+                $this.FunctionAppLocation = $FunctionAppConfig.Location
+                $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
+                $WorkerRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+                $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
                 
-                $functionPath = join-path -Path $this.FunctionAppPath -ChildPath $function.name
-                $this.functions += [AzFunction]::new( $FunctionPath, $true)
+                $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
+                $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
+                $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
+                
+                $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
 
-            }
-
-            if (test-path -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj") -ErrorAction SilentlyContinue) {
-
-                [xml] $CsPRojetExtenstionItem = Get-Content -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj")
-
-                foreach ($extension in $CsPRojetExtenstionItem.Project.ItemGroup.PackageReference) {
-                    
-                    $this.functionAppExtension.Add($extension.Include, $extension.Version)
-
+                if ($FunctionExtVerion -ne "~2") {
+                    throw "Error this module only support Azure functions v2 with PowerShell"
                 }
-            }
+
+                $storageAccountObject = Get-AzStorageAccount -ResourceGroupName $FunctionResourceGroup -Name $FunctionStorageConfigHash.AccountName
+
+                $StorageFileObject = Get-AzStorageFile -ShareName $this.FunctionAppStorageShareName  -Context $storageAccountObject.Context -Path "/site/wwwroot"  | Get-AzStorageFile
            
+                GetFile -CloudFilesObject $StorageFileObject -context $storageAccountObject.Context -AzurePath "/site/wwwroot" -LocalPath $functionAppPath -AzureStorageShareName $this.FunctionAppStorageShareName
+                
+                $this.ListFunction()
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
         }
-        
+        else {
+            throw "Not connected to Azure, use Login-AzAccount first"
+        }
+    }
+
+    hidden [void] ListFunction () {
+
+        try {
+            if (test-path -Path $this.FunctionAppPath -ErrorAction SilentlyContinue) {
+                $this.FunctionAppExistLocaly = $true
+                $FunctionList = get-childitem -Path $this.FunctionAppPath -Exclude @("microsoft","bin","obj", "modules") -Directory
+            
+                foreach ($function in $FunctionList) {
+                    
+                    $functionPath = join-path -Path $this.FunctionAppPath -ChildPath $function.name
+                    $this.Azfunctions += [AzFunction]::new( $FunctionPath, $true)
+    
+                }
+    
+                if (test-path -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj") -ErrorAction SilentlyContinue) {
+    
+                    [xml] $CsPRojetExtenstionItem = Get-Content -Path (join-path -Path $this.FunctionAppPath -ChildPath "extensions.csproj")
+    
+                    foreach ($extension in $CsPRojetExtenstionItem.Project.ItemGroup.PackageReference) {
+                        
+                        $this.functionAppExtension.Add($extension.Include, $extension.Version)
+    
+                    }
+                }
+               
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        }
+ 
+    }
+
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
+        $this.init($FunctionAppName, $functionAppPath)
+    }
+
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
     }
 
     [void] RemoveFunction ([string] $Functionname) {
@@ -45,7 +112,7 @@ class AzFunctionsApp {
         $NewFunctiongArray = @()
         $functionPath = $null
 
-        foreach ($Azfunction in $this.functions){
+        foreach ($Azfunction in $this.Azfunctions){
 
             if ($Azfunction.FunctionName -ne $Functionname) {
                
@@ -57,7 +124,7 @@ class AzFunctionsApp {
 
         }
 
-        $this.functions = $NewFunctiongArray
+        $this.Azfunctions = $NewFunctiongArray
 
         if ($null -ne $functionPath) {
 
@@ -81,7 +148,7 @@ class AzFunctionsApp {
                 $FunctionObject.WriteFunction()
             }
 
-            $this.functions += $FunctionObject
+            $this.Azfunctions += $FunctionObject
         }
         else {
             throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
@@ -103,13 +170,7 @@ class AzFunctionsApp {
 
     }
 
-    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
-        $this.init($FunctionAppName, $functionAppPath)
-    }
-
-    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
-        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
-    }
+    
 
     [void] PublishFunctionApp ([String] $DeployementUserName, [String] $DeployementPassword ) {
 
@@ -631,3 +692,40 @@ class tableIn : AzFunctionsBinding {
 
 }
 
+
+
+function GetFile (
+    [object[]] $CloudFilesObject, 
+    [Microsoft.WindowsAzure.Commands.Common.Storage.LazyAzureStorageContext] $context, 
+    [string] $AzurePath= "/site/wwwroot", 
+    [string] $LocalPath,
+    [String] $AzureStorageShareName
+    ) { 
+
+    foreach  ($CloudFile in $CloudFilesObject) {
+
+        $fileobject = Get-AzStorageFile -ShareName $AzureStorageShareName -Context $context -Path $AzurePath | Get-AzStorageFile | where-object name -eq $CloudFile.name
+
+        if ($fileobject.GetType().ToString() -eq "Microsoft.Azure.Storage.File.CloudFile") {
+            
+            $relative = $AzurePath.replace("/site/wwwroot","")
+            $relative = $relative.replace("/","\")
+            $relative = Join-Path -Path $LocalPath -ChildPath $relative
+            $relative = Join-Path -Path $relative -ChildPath $fileobject.Name
+                     
+            $fileobject | Get-AzStorageFileContent -Destination $relative
+
+        }
+        elseif (($fileobject.name -ne "Microsoft") -or ($fileobject.name -ne "bin") ) {
+            
+            $azPath = $AzurePath + "/" +$fileobject.Name
+           
+            $FolderPath = join-path -Path $localPath -ChildPath ($azPath.replace("/site/wwwroot/","")).replace("/","\")
+
+            new-item -Path $FolderPath -ItemType Directory | Out-Null
+
+            $fileobject = Get-AzStorageFile -ShareName $AzureStorageShareName -Context $context -Path $azPath | Get-AzStorageFile
+            GetFile -CloudFilesObject $fileobject -context $context -AzurePath $azPath -LocalPath $localPath -AzureStorageShareName $AzureStorageShareName 
+        }
+    }
+}

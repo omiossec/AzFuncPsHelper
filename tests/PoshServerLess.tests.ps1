@@ -168,7 +168,7 @@ $FunctionFakeObject = get-PoshServerlessFunction -FunctionPath $fakeFunctionPath
             }
 
             it "get-PoshServerlessFunctionApp  return 1 Function" {
-                $FunctionAppObject.functions.Count|  Should -be 1
+                $FunctionAppObject.azfunctions.Count |  Should -be 1
             }
 
             it "new-PoshServerlessFunctionTrigger with QueueTrigger Should not Throw" {
@@ -249,6 +249,8 @@ $FunctionFakeObject = get-PoshServerlessFunction -FunctionPath $fakeFunctionPath
             it "do not generate and error When try to create a function with trigger" {
                 {  write-PoshServerlessFunction  -FunctionObject $NewFakeFunction } | Should -not -Throw 
             }
+
+            
             
         }
 
