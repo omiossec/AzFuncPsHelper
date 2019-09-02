@@ -73,7 +73,7 @@ Update-ModuleManifest -Path $BuildModuleManifest -ModuleVersion $ModuleVersion
 Update-ModuleManifest -Path $BuildModuleManifest -RootModule "$($ModuleName).psm1"
 
 
-Import-Module platyPS -Force
+#Import-Module platyPS -Force
 
 
 
