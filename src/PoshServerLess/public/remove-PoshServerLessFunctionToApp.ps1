@@ -26,7 +26,7 @@ function remove-PoshServerLessFunctionToApp
     [CmdletBinding()]
     param(
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [AzFunctionApp]
+        [AzFunctionsApp]
         $FunctionAppObject,
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]

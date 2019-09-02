@@ -20,11 +20,18 @@ There are 4 main objects used in this module
 * PoshServerLessFunction, the representation of one Function in a an Azure  function App
 * PoshServerLessFunctionTrigger, the representation of the trigger of a function in an Azure function App
 * PoshServerLessFunctionBinding, the representation of binding of a function in an Azure function App
+
+### Load an existing Azure Functions localy 
+
+```powershell
+$FunctionApp = sync-PoshServerlessFunctionApp -FunctionAppName "FunctionName" -ResourceGroupName "RGName" -LocalFunctionPath "C:\work\lab\functions\FunctionName"
+```
+
  
 ### Create a new Function
 
 ```powershell
-$Function = new-PoshServerLessFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
+$Function = new-PoshServerLessFunction -FunctionAppPath "C:\work\lab\functions\FunctionName" -FunctionName "TimerFunction"
 ``` 
 
 ### Add a Trigger to the function
@@ -43,8 +50,23 @@ $Queue = new-PoshServerLessFunctionBinding -Direction out -BindingName MyQueue �
  
 add-PoshServerLessFunctionBinding  -FunctionObject $Function -BindingObject $Queue
 ```
- 
- 
+
+### write function
+```powershell
+  $Function  | write-PoshServerlessFunction 
+  ```
+
+### Update The Function App 
+
+```powershell
+add-PoshServerLessFunctionToApp -FunctionAppObject $FunctionApp -FunctionObject $function
+```
+
+### Publish the function app 
+
+```powershell
+publish-PoshServerLessFunctionApp -FunctionAppObject $FunctionApp
+```
  
 ## Release Note
 
