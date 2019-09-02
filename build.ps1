@@ -15,6 +15,9 @@ param (
 
 $PathSeparator = [IO.Path]::DirectorySeparatorChar
 
+Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+Install-Module -Name platyPS -Scope CurrentUser
+
 
 $BuildFolder = join-path -path $SourceFolder  -childpath "generated"
 
@@ -69,7 +72,7 @@ Update-ModuleManifest -Path $BuildModuleManifest -ModuleVersion $ModuleVersion
 
 Update-ModuleManifest -Path $BuildModuleManifest -RootModule "$($ModuleName).psm1"
 
-Install-Module -Name platyPS -Scope CurrentUser
+
 Import-Module platyPS -Force
 
 
