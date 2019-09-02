@@ -78,5 +78,5 @@ $ModuleInformation = Import-module -Name $BuildModuleManifest -PassThru
 
 
 
-New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc
+New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc -ErrorAction SilentlyContinue
 
