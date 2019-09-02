@@ -15,8 +15,8 @@ param (
 
 $PathSeparator = [IO.Path]::DirectorySeparatorChar
 
-Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
-Install-Module -Name platyPS -Scope CurrentUser
+#Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+#Install-Module -Name platyPS -Scope CurrentUser
 
 
 $BuildFolder = join-path -path $SourceFolder  -childpath "generated"
@@ -81,5 +81,5 @@ $ModuleInformation = Import-module -Name $BuildModuleManifest -PassThru
 
 
 
-New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc -ErrorAction SilentlyContinue
+#New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc -ErrorAction SilentlyContinue
 
