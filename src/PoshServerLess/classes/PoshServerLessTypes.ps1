@@ -14,6 +14,7 @@ class AzFunctionsApp {
     
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
+    [hashtable] $FunctionAppSettings = @{}
     [AzFunction[]] $Azfunctions = @()
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath) {
@@ -45,7 +46,8 @@ class AzFunctionsApp {
                 $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
                 
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
-
+                $this.FunctionAppSettings = $FunctionStorageConfigHash
+                
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
                 }

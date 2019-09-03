@@ -1,7 +1,7 @@
 function add-PoshServerLessFunctionToApp 
 {
 
-        <#
+    <#
     .SYNOPSIS
     
     Add a function object to an existing Function App Object
