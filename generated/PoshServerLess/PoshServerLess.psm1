@@ -753,7 +753,10 @@ function add-PoshServerlessFunctionBinding
 
     
     .EXAMPLE
-    
+    $MyFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
+    $Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
+
+    add-PoshServerlessFunctionBinding -FunctionObject $MyFunction -BindingObject $Biding
 
            
     #>
@@ -790,12 +793,10 @@ function add-PoshServerLessFunctionToApp
     Specifies the function Object
     
     .PARAMETER FunctionAppObject
-    Specifie the Binding Object
-
-
-    
+    Specifie the function App Object
+  
     .EXAMPLE
-    
+    add-PoshServerLessFunctionToApp -FunctionObject $MyNewFunction -FunctionAppObject $MyApp
            
     #>
 
@@ -1041,7 +1042,7 @@ function new-PoshServerlessFunctionBinding
         
     .EXAMPLE
     
-   
+    $Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
 
            
     #>
@@ -1161,16 +1162,44 @@ function new-PoshServerlessFunctionTrigger
     There are 5 types
     queueTrigger, timerTrigger, serviceBusTrigger, httpTrigger, blobTrigger
     
+    .PARAMETER TriggerType
+    Kind of trigger "queueTrigger","timerTrigger", "httpTrigger","serviceBusTrigger","blobTrigger"
+
+    .PARAMETER TriggerName
+    Name of the trigger. The name will be use in the run.ps1 as a parameter
+
+    .PARAMETER connection
+    The name of AppSetting for the storage configuration
+
+    .PARAMETER queueName
+    For queue trigger only, Name of the queue in the storage
+
+    .PARAMETER ServiceBusqueueName
+    For Service Bus trigger only, Name of the queue in the storage
+
+    .PARAMETER Schedule
+    For timer trigger only, the schedule in a cron format, 0 * 8 * * *
+
+    .PARAMETER methods
+    For web trigger only, Allowed HTTP verbs @("POST", "GET")
+
+    .PARAMETER authLevel
+    For web trigger only, authorisation level 
+    anonymous no API key needed
+    function the function App key is needed 
+    admin the function master key is needed (this key can be also use in scm)
+
+    .PARAMETER authLevel
+    For blob trigger only, path in the storage account the function will monitor container/{name}
 
 
-    .PARAMETER BindingName
-    In or Out
-    Queue binding accept only Out direction
+
+path
     
         
     .EXAMPLE
     
-   
+    $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
 
            
     #>
@@ -1252,10 +1281,36 @@ function new-PoshServerlessFunctionTrigger
 }
 function publish-PoshServerLessFunctionApp 
 {
-<#
+    <#
+    .SYNOPSIS
+    
+    Publish the function to Azure
+    
+    .DESCRIPTION
+    
+    Publish the function app to Azure
+    This action will replace all the functions inside Azure by those in the function app Object
+    You need to have a valid ResourceGroup in the object (for example by using sync-PoshServerlessFunctionApp)
+    
+    .PARAMETER FunctionAppObject
+    Specifies the function Object
+    
+    .EXAMPLE
 
+    $myFunctionApp = sync-PoshServerlessFunctionApp -FunctionName MyFunctionApp01 -ResourceGroupName MyRessourceGroup -LocalFunctionPath 'c:\work\Myfunction' 
 
-#>
+    $myFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\Myfunction\timerfunc" -FunctionName "TimerFunction"
+
+    $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
+
+    update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
+
+    add-PoshServerLessFunctionToApp -FunctionObject $myFunction -FunctionAppObject $myFunctionApp
+
+    publish-PoshServerLessFunctionApp -FunctionAppObject $myFunctionApp
+
+           
+    #>
 
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact='Medium')]
     param(
@@ -1475,6 +1530,14 @@ function update-PoshServerlessFunctionTrigger
 
    
     .EXAMPLE  
+
+    $myFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\Myfunction\timerfunc" -FunctionName "TimerFunction"
+
+    $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
+
+    update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
+
+
 
            
     #>

@@ -19,6 +19,14 @@ function update-PoshServerlessFunctionTrigger
    
     .EXAMPLE  
 
+    $myFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\Myfunction\timerfunc" -FunctionName "TimerFunction"
+
+    $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
+
+    update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
+
+
+
            
     #>
 

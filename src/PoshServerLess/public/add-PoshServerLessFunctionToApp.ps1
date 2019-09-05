@@ -14,12 +14,10 @@ function add-PoshServerLessFunctionToApp
     Specifies the function Object
     
     .PARAMETER FunctionAppObject
-    Specifie the Binding Object
-
-
-    
+    Specifie the function App Object
+  
     .EXAMPLE
-    
+    add-PoshServerLessFunctionToApp -FunctionObject $MyNewFunction -FunctionAppObject $MyApp
            
     #>
 

@@ -51,13 +51,13 @@ queueTrigger, timerTrigger, serviceBusTrigger, httpTrigger, blobTrigger
 
 ### EXAMPLE 1
 ```
-
+$TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
 ```
 
 ## PARAMETERS
 
 ### -TriggerType
-{{ Fill TriggerType Description }}
+Kind of trigger "queueTrigger","timerTrigger", "httpTrigger","serviceBusTrigger","blobTrigger"
 
 ```yaml
 Type: String
@@ -72,7 +72,8 @@ Accept wildcard characters: False
 ```
 
 ### -TriggerName
-{{ Fill TriggerName Description }}
+Name of the trigger.
+The name will be use in the run.ps1 as a parameter
 
 ```yaml
 Type: String
@@ -87,7 +88,7 @@ Accept wildcard characters: False
 ```
 
 ### -connection
-{{ Fill connection Description }}
+The name of AppSetting for the storage configuration
 
 ```yaml
 Type: String
@@ -102,7 +103,7 @@ Accept wildcard characters: False
 ```
 
 ### -queueName
-{{ Fill queueName Description }}
+For queue trigger only, Name of the queue in the storage
 
 ```yaml
 Type: String
@@ -117,7 +118,7 @@ Accept wildcard characters: False
 ```
 
 ### -ServiceBusqueueName
-{{ Fill ServiceBusqueueName Description }}
+For Service Bus trigger only, Name of the queue in the storage
 
 ```yaml
 Type: String
@@ -132,7 +133,7 @@ Accept wildcard characters: False
 ```
 
 ### -Schedule
-{{ Fill Schedule Description }}
+For timer trigger only, the schedule in a cron format, 0 * 8 * * *
 
 ```yaml
 Type: String
@@ -147,7 +148,7 @@ Accept wildcard characters: False
 ```
 
 ### -methods
-{{ Fill methods Description }}
+For web trigger only, Allowed HTTP verbs @("POST", "GET")
 
 ```yaml
 Type: String[]
@@ -162,7 +163,10 @@ Accept wildcard characters: False
 ```
 
 ### -authLevel
-{{ Fill authLevel Description }}
+For web trigger only, authorisation level 
+anonymous no API key needed
+function the function App key is needed 
+admin the function master key is needed (this key can be also use in scm)
 
 ```yaml
 Type: String

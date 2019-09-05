@@ -24,8 +24,12 @@ Update an AzFunction Object with a trigger Object
 
 ### EXAMPLE 1
 ```
-
+$myFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\Myfunction\timerfunc" -FunctionName "TimerFunction"
 ```
+
+$TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
+
+update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
 
 ## PARAMETERS
 
