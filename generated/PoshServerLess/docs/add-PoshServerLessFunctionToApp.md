@@ -24,13 +24,13 @@ Add a function object to an existing Function App Object
 
 ### EXAMPLE 1
 ```
-
+add-PoshServerLessFunctionToApp -FunctionObject $MyNewFunction -FunctionAppObject $MyApp
 ```
 
 ## PARAMETERS
 
 ### -FunctionAppObject
-Specifie the Binding Object
+Specifie the function App Object
 
 ```yaml
 Type: AzFunctionsApp

@@ -8,36 +8,65 @@ schema: 2.0.0
 # remove-PoshServerLessFunctionToApp
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Remove a function object to an existing Function App Object
 
 ## SYNTAX
 
+```
+remove-PoshServerLessFunctionToApp [-FunctionAppObject] <AzFunctionsApp> [-FunctionName] <String>
+ [<CommonParameters>]
+```
+
 ## DESCRIPTION
-{{ Fill in the Description }}
+Remove a function object to an existing Function App Object
+It also remove the function from the disk
 
 ## EXAMPLES
 
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
+### EXAMPLE 1
 ```
 
-{{ Add example description here }}
+```
 
 ## PARAMETERS
+
+### -FunctionAppObject
+Specifie the Binding Object
+
+```yaml
+Type: AzFunctionsApp
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -FunctionName
+Specifies the function Name
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 2
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
 
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-### AzFunction
-
-### System.String
-
 ## OUTPUTS
 
-### System.Object
 ## NOTES
 
 ## RELATED LINKS

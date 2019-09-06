@@ -19,7 +19,10 @@ function add-PoshServerlessFunctionBinding
 
     
     .EXAMPLE
-    
+    $MyFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
+    $Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
+
+    add-PoshServerlessFunctionBinding -FunctionObject $MyFunction -BindingObject $Biding
 
            
     #>

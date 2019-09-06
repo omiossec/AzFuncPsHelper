@@ -24,7 +24,7 @@ function new-PoshServerlessFunctionBinding
         
     .EXAMPLE
     
-   
+    $Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
 
            
     #>

@@ -24,8 +24,12 @@ Add a Binding object to an existing azFunction Object
 
 ### EXAMPLE 1
 ```
-
+$MyFunction = new-PoshServerlessFunction -FunctionAppPath "c:\work\functionAppFolder\" -FunctionName "TimerFunction"
 ```
+
+$Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
+
+add-PoshServerlessFunctionBinding -FunctionObject $MyFunction -BindingObject $Biding
 
 ## PARAMETERS
 

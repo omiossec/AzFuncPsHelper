@@ -46,7 +46,7 @@ and "blob","http","queue", "table"
 
 ### EXAMPLE 1
 ```
-
+$Biding = new-PoshServerlessFunctionBinding -Direction out -BindingName MyBinding -BindingType queue -connection MyStorage
 ```
 
 ## PARAMETERS
