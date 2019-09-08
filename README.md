@@ -21,7 +21,7 @@ There are 4 main objects used in this module
 * PoshServerLessFunctionTrigger, the representation of the trigger of a function in an Azure function App
 * PoshServerLessFunctionBinding, the representation of binding of a function in an Azure function App
 
-### Load an existing Azure Functions localy 
+### Load an existing Azure Functions localy
 
 ```powershell
 $FunctionApp = sync-PoshServerlessFunctionApp -FunctionAppName "FunctionName" -ResourceGroupName "RGName" -LocalFunctionPath "C:\work\lab\functions\FunctionName"
@@ -68,12 +68,3 @@ add-PoshServerLessFunctionToApp -FunctionAppObject $FunctionApp -FunctionObject 
 publish-PoshServerLessFunctionApp -FunctionAppObject $FunctionApp
 ```
  
-## Release Note
-
-* V 0.1.0 Publish and Sync to/from Azure Functions
-* V 0.0.6 Module rename to PoshServerLess
-* V 0.0.5 Better error Handling and error correction
-* V 0.0.4 add test-azFuncFunctionBinding  and remove-azFuncFunctionBinding
-* V 0.0.3 add get-azFuncFunctionApp cmdlet and bug correction on trigger
-* V 0.0.2 Bug correction and unit/integration test
-* V 0.0.1 Initial release

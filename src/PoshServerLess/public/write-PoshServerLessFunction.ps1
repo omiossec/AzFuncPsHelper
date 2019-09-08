@@ -2,18 +2,14 @@ function write-PoshServerlessFunction
 {
     <#
     .SYNOPSIS
-    
-    Update a function.json file (and the run.ps1) from the azFunctionObject
+    Update the function folder with the azFunctionObject object
     
     .DESCRIPTION
-    
-    Update a function.json file (and the run.ps1) from the azFunctionObject
+    Update the function folder with the azFunctionObject object
     
     .PARAMETER FunctionObject
     Specifies the function Object
     
-
-
    
     .EXAMPLE  
     $AzFunctionObject | write-PoshServerlessFunction 
