@@ -17,13 +17,72 @@ class AzFunctionsApp {
     [hashtable] $FunctionAppSettings = @{}
     [AzFunction[]] $Azfunctions = @()
 
-    hidden init([string] $FunctionAppName, [string] $functionAppPath) {
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
+        $this.init($FunctionAppName, $functionAppPath)
+    }
 
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
+    }
+
+
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup, [string] $AzureLocation) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup, $AzureLocation)
+    }
+
+    hidden init([string] $FunctionAppName, [string] $functionAppPath) {
         $this.FunctionAppName = $FunctionAppName
         $this.FunctionAppPath = $functionAppPath
+        $this.ListFunction()      
+    }
 
-        $this.ListFunction()
-        
+    hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup, [string] $FunctionAppLocation) {
+
+        $this.FunctionAppName = $FunctionAppName
+        $this.FunctionAppPath = join-path -path  $functionAppPath -ChildPath $this.FunctionAppName
+        $this.FunctionAppLocation = $FunctionAppLocation
+        $this.RessourceGroup = $FunctionResourceGroup
+
+        if (!(test-path -Path $this.FunctionAppPath  -ErrorAction SilentlyContinue)) {
+            try {
+                new-item -Path $this.FunctionAppPath -ItemType Directory
+
+                $Functionrequirements = "@{ 'Az' = '1.*'`" }"
+
+                $FunctionHostConfig = @{
+                    "version" = "2.0"
+                    "functionTimeout" = "00:05:00"
+                    "extensionBundle" = @{
+                            "id" = "Microsoft.Azure.Functions.ExtensionBundle"
+                            "version"= "[1.*, 2.0.0)"
+                        }
+                     "logging"= @{
+                        "logLevel"= @{
+                            "default"= "Information"
+                             }
+                      "fileLoggingMode"= "always"
+                        }
+                  "managedDependency"= @{
+                    "enabled"= $true
+                    }
+                }
+                
+                $profileConfig = "if (`$env:MSI_SECRET -and (Get-Module -ListAvailable Az.Accounts)) { Connect-AzAccount -Identity }"
+
+                new-item -Path (join-path $this.FunctionAppPath -ChildPath "profile.ps1") -ItemType File | Set-Content -PassThru -Encoding utf8 -Value $profileConfig
+                new-item -Path (join-path $this.FunctionAppPath -ChildPath "requirements.psd1") -ItemType File | Set-Content -PassThru -Encoding utf8 -Value $Functionrequirements.ToString()
+                new-item -Path (join-path $this.FunctionAppPath -ChildPath "host.json") -ItemType File | Set-Content -PassThru -Encoding utf8 -Value ($FunctionHostConfig | convertTo-json -Depth 4)
+
+           } 
+           catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+           }           
+        }
+        else {
+            throw "Can not create a function app in $($this.FunctionAppPath)"
+        }
+
+
     }
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup) {
@@ -47,7 +106,7 @@ class AzFunctionsApp {
                 
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
                 $this.FunctionAppSettings = $FunctionStorageConfigHash
-                
+
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
                 }
@@ -102,13 +161,7 @@ class AzFunctionsApp {
  
     }
 
-    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath) {
-        $this.init($FunctionAppName, $functionAppPath)
-    }
 
-    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup) {
-        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup)
-    }
 
     [void] RemoveFunction ([string] $Functionname) {
 
@@ -1008,7 +1061,6 @@ function new-PoshServerlessFunction
 
         [switch]
         $OverWrite 
-
     )
 
     $functionPath = join-path -Path $FunctionAppPath -ChildPath $FunctionName
@@ -1016,6 +1068,78 @@ function new-PoshServerlessFunction
     return [AzFunction]::new($FunctionName,$FunctionPath, $OverWrite)
 
 }
+function new-PoshServerlessFunctionApp {
+    <#
+    .SYNOPSIS
+    
+    Create a new azure function App object and the function app file
+    
+    .DESCRIPTION
+    
+    Create a new azure function App object and the function app file
+    It doesn't create the function in Azure
+    
+    .PARAMETER FunctionAppPath
+    Specifies the function App local path, this path must not exist
+    
+    .PARAMETER FunctionAppName
+    The host name of the function App. This Name must be globally unique 
+
+    .PARAMETER FunctionAppLocation
+    The Function App desired location
+
+    .PARAMETER FunctionAppResourceGroup
+    The Function App desired Resource Group
+    
+    .OUTPUTS
+    
+    AzFunctionsApp object
+    
+    .EXAMPLE
+    
+    new-PoshServerlessFunctionApp -FunctionAppPath "c:\work\functionAppFolder\" -FunctionAppName "MyFunction01" -FunctionAppLocation "WestEurope" -FunctionAppResourceGroup "MyRg"
+    create a new azFunction Object
+           
+    #>
+    [OutputType([AzFunctionsApp])]
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $FunctionAppPath,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $FunctionAppName,
+
+        [string]
+        [ValidateSet("UKSouth", "UKWest", "NorthEurope","WestEurope",	"FranceCentral","SouthAfricaNorth","CentralIndia",	"SouthIndia","WestIndia","JapanEast","JapanWest","KoreaCentral", 
+        "EastAsia","SoutheastAsia","AustraliaCentral", "AustraliaCentral2",	"AustraliaEast", "AustraliaSoutheast", "BrazilSouth", "CanadaCentral",
+        "CanadaEast", "ChinaEast","ChinaEast2",	"ChinaNorth", "GermanyCentral", "GermanyNortheast","WestUS",
+        "WestUS2", "CentralUS", "EastUS","EastUS2","NorthCentralUS","SouthCentralUS","WestCentralUS"
+        )]
+        $FunctionAppLocation,
+
+        [string]
+        $FunctionAppResourceGroup
+    )
+
+  
+        return [AzFunctionsApp]::new($FunctionAppName,$FunctionAppPath, $FunctionAppResourceGroup, $FunctionAppLocation)
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
 function new-PoshServerlessFunctionBinding 
 {
     
@@ -1561,18 +1685,14 @@ function write-PoshServerlessFunction
 {
     <#
     .SYNOPSIS
-    
-    Update a function.json file (and the run.ps1) from the azFunctionObject
+    Update the function folder with the azFunctionObject object
     
     .DESCRIPTION
-    
-    Update a function.json file (and the run.ps1) from the azFunctionObject
+    Update the function folder with the azFunctionObject object
     
     .PARAMETER FunctionObject
     Specifies the function Object
     
-
-
    
     .EXAMPLE  
     $AzFunctionObject | write-PoshServerlessFunction 

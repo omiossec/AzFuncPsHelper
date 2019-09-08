@@ -44,7 +44,6 @@ function new-PoshServerlessFunction
 
         [switch]
         $OverWrite 
-
     )
 
     $functionPath = join-path -Path $FunctionAppPath -ChildPath $FunctionName

@@ -125,6 +125,17 @@ $fakeFUnctionAppHostJson = (join-path $fakeFunctionAppPath -ChildPath "host.json
 $fakeFunctionPath = (join-path $fakeFunctionAppPath -ChildPath "testFunc")
 $fakeFunctionBinPath = (join-path $fakeFunctionAppPath -ChildPath "bin")
 $fakeFunctionJsonPath = (join-path $fakeFunctionPath -ChildPath "function.json")
+$NewFunctionPath = join-path "testdrive:\" -ChildPath "New"
+$NewFunctionPathApp = join-path $NewFunctionPath -ChildPath "NewFunctionApp"
+
+$NewFunctionPathHostJson = (join-path $NewFunctionPathApp -ChildPath "host.json")
+$NewFunctionPathProfile = (join-path $NewFunctionPathApp -ChildPath "profile.ps1")
+$NewFunctionPathEequirements = (join-path $NewFunctionPathApp -ChildPath "requirements.psd1")
+$fakeFunctionJsonPath = (join-path $fakeFunctionPath -ChildPath "function.json")
+
+
+
+
 new-item -path $fakeFunctionPath -ItemType Directory
 new-item -path $fakeFunctionBinPath -ItemType Directory
 new-item -path $fakeFUnctionAppHostJson -ItemType File
@@ -251,6 +262,23 @@ $FunctionFakeObject = get-PoshServerlessFunction -FunctionPath $fakeFunctionPath
             }
 
             
+            it "do not generate and error When trying to create a new function app " {
+                { new-PoshServerlessFunctionApp -FunctionAppPath $NewFunctionPath -FunctionAppName "NewFunctionApp" -FunctionAppLocation "WestEurope" -FunctionAppResourceGroup "MyRg" } | Should -not -Throw 
+            }
+
+   
+
+            it "New Function App Should get a Host.json " {
+                test-path -Path $NewFunctionPathHostJson -ErrorAction SilentlyContinue| Should -BeTrue
+            }
+
+            it "New Function App Should get a profile.ps1 " {
+                test-path -Path $NewFunctionPathProfile -ErrorAction SilentlyContinue | Should -BeTrue
+            }
+
+            it "New Function App Should get a requirements.psd1 " {
+                test-path -Path $NewFunctionPathEequirements -ErrorAction SilentlyContinue | Should -BeTrue
+            }
             
         }
 
