@@ -92,7 +92,8 @@ class AzFunctionsApp {
                 $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $FunctionResourceGroup -Name $FunctionAppName 
 
                 $this.FunctionAppName = $FunctionAppName
-                $this.FunctionAppPath = $functionAppPath
+                
+                $this.FunctionAppPath = join-path -Path $functionAppPath -ChildPath $FunctionAppName
                 $this.RessourceGroup = $FunctionResourceGroup
 
                 $this.FunctionAppLocation = $FunctionAppConfig.Location
@@ -115,7 +116,7 @@ class AzFunctionsApp {
 
                 $StorageFileObject = Get-AzStorageFile -ShareName $this.FunctionAppStorageShareName  -Context $storageAccountObject.Context -Path "/site/wwwroot"  | Get-AzStorageFile
            
-                GetFile -CloudFilesObject $StorageFileObject -context $storageAccountObject.Context -AzurePath "/site/wwwroot" -LocalPath $functionAppPath -AzureStorageShareName $this.FunctionAppStorageShareName
+                GetFile -CloudFilesObject $StorageFileObject -context $storageAccountObject.Context -AzurePath "/site/wwwroot" -LocalPath $this.FunctionAppPath -AzureStorageShareName $this.FunctionAppStorageShareName
                 
                 $this.ListFunction()
             }
@@ -772,7 +773,7 @@ function GetFile (
             $fileobject | Get-AzStorageFileContent -Destination $relative
 
         }
-        elseif (($fileobject.name -ne "Microsoft") -or ($fileobject.name -ne "bin") ) {
+        elseif (($fileobject.name -ne "Microsoft") -and ($fileobject.name -ne "bin") ) {
             
             $azPath = $AzurePath + "/" +$fileobject.Name
            
