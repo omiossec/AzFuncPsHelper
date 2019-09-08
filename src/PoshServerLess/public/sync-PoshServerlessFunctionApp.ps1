@@ -48,7 +48,9 @@ function sync-PoshServerlessFunctionApp
 
     if (test-path -Path $LocalFunctionPath -ErrorAction SilentlyContinue) {
 
-        if ((get-childitem -Path $LocalFunctionPath).count -gt 0) {
+        $FunctionPath = join-path -Path $LocalFunctionPath -ChildPath $FunctionAppName
+
+        if (test-path -Path $FunctionPath -ErrorAction SilentlyContinue) {
             throw "The Path of The function $($LocalFunctionPath) is not empty"
         }
         

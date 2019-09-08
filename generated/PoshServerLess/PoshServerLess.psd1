@@ -12,7 +12,7 @@
 RootModule = 'PoshServerLess.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.1'
+ModuleVersion = '0.1.2'
 
 # Supported PSEditions
 CompatiblePSEditions = 'core', 'desktop'
@@ -30,7 +30,7 @@ CompanyName = 'Olivier Miossec at Metsys'
 Copyright = 'Olivier Miossec 2019'
 
 # Description of the functionality provided by this module
-Description = 'This module create binding for Azure Function v2'
+Description = 'This module help to create and manage PowerShell Azure Function v2'
 
 # Minimum version of the PowerShell engine required by this module
 PowerShellVersion = '5.1'
