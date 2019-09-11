@@ -1,7 +1,4 @@
 
-
-
-
 class AzFunctionsApp {
 
     [string] $FunctionAppName
@@ -11,6 +8,8 @@ class AzFunctionsApp {
     [string] $FunctionAppStorageName
     [string] $FunctionAppStorageShareName
     [string] $FunctionAppLocation
+    [string] $FunctionTimeZone
+    [string] $FunctionRuntime = "PowerShell"
     
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
@@ -98,15 +97,19 @@ class AzFunctionsApp {
 
                 $this.FunctionAppLocation = $FunctionAppConfig.Location
                 $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
-                $WorkerRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+                $This.FunctionRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
                 $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
                 
+                $this.FunctionTimeZone = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_TIME_ZONE").Value
+
                 $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
                 $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
                 $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
                 
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
                 $this.FunctionAppSettings = $FunctionStorageConfigHash
+
+                $this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
 
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
@@ -162,7 +165,20 @@ class AzFunctionsApp {
  
     }
 
+    [void] GetAppSettings ([Collections.Generic.List[Int]] $AppSettingList) {
 
+        foreach ($appSetting in $AppSettingList) {
+            $this.FunctionAppSettings.Add($appSetting.value,$appSetting.key)
+        }
+    }
+
+ 
+
+    [void] AddAppSetting ([string] $Name, [string] $Value) {
+
+    }
+
+ 
 
     [void] RemoveFunction ([string] $Functionname) {
 
