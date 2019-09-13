@@ -57,11 +57,21 @@ $PublicFunctionsList = Get-ChildItem -Path $ModuleSourceFolder -Include 'Public'
 $AllFunctionsAndClasses = Get-ChildItem -Path $ModuleSourceFolder -Include 'Public', 'classes' -Recurse -Directory | Get-ChildItem -Include *.ps1 -File
 
 
-new-item -Path $BuildModulePSM1 -ItemType File
+$AllJsonFiles = Get-ChildItem -Path $ModuleSourceFolder -Include 'json' -Recurse -Directory | Get-ChildItem -Include *.json -File
 
+
+new-item -Path $BuildModulePSM1 -ItemType File
+Get-ChildItem -Path $ModuleSourceFolder -Include 'json' -Recurse -Directory | Get-ChildItem -Include *.json -File
 if ($AllFunctionsAndClasses) {
     Foreach ($FunctionAndClass in $AllFunctionsAndClasses) {
         Get-Content -Path $FunctionAndClass.FullName | Add-Content -Path $BuildModulePSM1
+    }
+}
+
+if ($AllJsonFiles) {
+    Foreach ($JsonFile in $AllJsonFiles) {
+        $destination = join-path -Path $BuildModulePath -ChildPath $JsonFile.Name
+        Copy-Item -Path $JsonFile.FullName -Destination $destination -Force
     }
 }
 

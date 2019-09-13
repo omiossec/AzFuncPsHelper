@@ -1,7 +1,4 @@
 
-
-
-
 class AzFunctionsApp {
 
     [string] $FunctionAppName
@@ -11,6 +8,8 @@ class AzFunctionsApp {
     [string] $FunctionAppStorageName
     [string] $FunctionAppStorageShareName
     [string] $FunctionAppLocation
+    [string] $FunctionTimeZone
+    [string] $FunctionRuntime = "PowerShell"
     
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
@@ -98,15 +97,19 @@ class AzFunctionsApp {
 
                 $this.FunctionAppLocation = $FunctionAppConfig.Location
                 $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
-                $WorkerRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+                $This.FunctionRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
                 $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
                 
+                $this.FunctionTimeZone = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_TIME_ZONE").Value
+
                 $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
                 $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
                 $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
                 
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
                 $this.FunctionAppSettings = $FunctionStorageConfigHash
+
+                $this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
 
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
@@ -127,6 +130,25 @@ class AzFunctionsApp {
         else {
             throw "Not connected to Azure, use Login-AzAccount first"
         }
+    }
+
+    hidden [Boolean] TestFunctionAppExistInAzure () {
+        try {
+            $DnsResolve = Resolve-DnsName -Name "$($this.FunctionAppName).azurewebsites.net" -ErrorAction SilentlyContinue
+            if ($null -eq $DnsResolve) {
+                return $false
+            } else {
+                return $true
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            return $false
+        }       
+    }
+
+    hidden [void] CreateFunctionAppInAzure () {
+
     }
 
     hidden [void] ListFunction () {
@@ -162,7 +184,59 @@ class AzFunctionsApp {
  
     }
 
+    [void] GetAppSettings ([Collections.Generic.List[Microsoft.Azure.Management.WebSites.Models.NameValuePair]] $AppSettingList) {
 
+        foreach ($appSetting in $AppSettingList) {
+            write-verbose "Adding Key $($appSetting.name) / Value $($appSetting.value)"
+            $this.FunctionAppSettings.Add($appSetting.name, $appSetting.value)
+        }
+    }
+
+    [void] LoadFunctionFromAzure ([string] $RessourceGroup) {
+
+        $this.RessourceGroup = $RessourceGroup
+
+        $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $this.RessourceGroup -Name $this.FunctionAppName 
+        
+
+        $this.FunctionAppLocation = $FunctionAppConfig.Location
+        $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
+        $This.FunctionRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+        $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
+        
+        $this.FunctionTimeZone = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_TIME_ZONE").Value
+
+        $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
+        $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
+        $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
+        
+        $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
+        $this.FunctionAppSettings = $FunctionStorageConfigHash
+
+        $this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
+
+        if ($FunctionExtVerion -ne "~2") {
+            throw "Error this module only support Azure functions v2 with PowerShell"
+        }
+
+    }
+
+    [void] UpdateAppSetting ([string] $Name, [string] $Value) {
+
+        if ($null -eq $this.FunctionAppSettings[$name] ) {
+            $this.FunctionAppSettings.add($name,$value)        
+        }elseif ($name -in @("FUNCTIONS_WORKER_RUNTIME","AzureWebJobsStorage","FUNCTIONS_EXTENSION_VERSION","WEBSITE_CONTENTAZUREFILECONNECTIONSTRING","WEBSITE_CONTENTSHARE")) {
+            throw "You can not change this function App Setting, FUNCTIONS_WORKER_RUNTIME,AzureWebJobsStorage,FUNCTIONS_EXTENSION_VERSION,WEBSITE_CONTENTAZUREFILECONNECTIONSTRING,WEBSITE_CONTENTSHARE"
+        }
+        else {
+            $this.FunctionAppSettings[$name] = $value
+        }
+
+    }
+
+
+
+ 
 
     [void] RemoveFunction ([string] $Functionname) {
 
@@ -219,8 +293,14 @@ class AzFunctionsApp {
         return $false
     }
 
+ 
     [void] deployFunctionApp () {
+        try {
 
+        }
+        catch {
+
+        }
     }
 
     [void] getFunctiondeploymentStatus ([String] $DeployementUserName, [String] $DeployementPassword) {
@@ -767,10 +847,10 @@ function GetFile (
             
             $relative = $AzurePath.replace("/site/wwwroot","")
             $relative = $relative.replace("/","\")
-            $relative = Join-Path -Path $LocalPath -ChildPath $relative
-            $relative = Join-Path -Path $relative -ChildPath $fileobject.Name
-                     
-            $fileobject | Get-AzStorageFileContent -Destination $relative
+            $relativeLocalPath = Join-Path -Path $LocalPath -ChildPath $relative
+            $RelativeFilePath = Join-Path -Path $relativeLocalPath -ChildPath $fileobject.Name
+            write-verbose "Copy $($fileobject.Name) File to path $($RelativeFilePath) Path $($LocalPath )"
+            $fileobject | Get-AzStorageFileContent -Destination $RelativeFilePath
 
         }
         elseif (($fileobject.name -ne "Microsoft") -and ($fileobject.name -ne "bin") ) {
@@ -784,6 +864,40 @@ function GetFile (
             $fileobject = Get-AzStorageFile -ShareName $AzureStorageShareName -Context $context -Path $azPath | Get-AzStorageFile
             GetFile -CloudFilesObject $fileobject -context $context -AzurePath $azPath -LocalPath $localPath -AzureStorageShareName $AzureStorageShareName 
         }
+    }
+}
+
+function getMsTimeZone () {
+
+    $ModulePath = $PSScriptRoot 
+
+    try {
+        $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
+        $ObjectData = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json)
+
+        return $ObjectData.parameters.timezone.allowedValues
+
+    }
+    catch {
+        Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+    }
+
+}
+
+function TestModulePresent ([string] $moduleName="Az") {
+
+    return ! $null -eq (get-module -ListAvailable | where-object name -eq $moduleName)
+}
+
+
+function TestAzureConnection () {
+
+    try {
+        $null = Get-AzContext
+        return $true
+    }
+    catch {
+        return $false
     }
 }
 function add-PoshServerlessFunctionBinding 
@@ -1526,6 +1640,226 @@ function remove-PoshServerLessFunctionToApp
 
 
 }
+function Resolve-PoshServerlessFunctionApp 
+{
+    <#
+    .SYNOPSIS
+    
+    This function resolve Azure Azure Parameters like AppSetting for a function App that exit localy and on Azure but are not sync
+    
+    .DESCRIPTION
+    
+    This function resolve Azure Azure Parameters like AppSetting for a function App that exit localy and on Azure but are not sync
+    
+    .PARAMETER FunctionAppObject
+    A [AzFunctionsApp] object
+
+    .PARAMETER ResourceGroupName
+    The name of the ressource Group
+
+   
+    .EXAMPLE  
+
+    $FunctionApp = get-PoshServerlessFunctionApp -FunctionAppPath Path -FunctionAppName MyFuntion
+    Resolve-PoshServerlessFunctionApp -FunctionAppObject $FunctionApp -ResourceGroupName MyRessourceGroup
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $ResourceGroupName
+
+    )
+
+    $FunctionAppObject.LoadFunctionFromAzure($ResourceGroupName)
+
+}
+function Set-PoshServerlessFunctionAppTimezone 
+{
+
+    <#
+    .SYNOPSIS
+    
+    Set the time zone setting for the function app object
+    
+    .DESCRIPTION
+    
+    Set the time zone setting for the function app object
+    To take effect the function need be initialised either by sync-PoshServerlessFunctionApp or new-PoshServerLessFunctionApp 
+    
+    .PARAMETER FunctionApp
+    The Function App object
+
+    .PARAMETER TimeZone
+    string Representing the timezone see 
+
+
+    
+    .EXAMPLE
+    
+
+           
+    #>
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject,
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet("Dateline Standard Time",
+        "UTC-11",
+        "Aleutian Standard Time",
+        "Hawaiian Standard Time",
+        "Marquesas Standard Time",
+        "Alaskan Standard Time",
+        "UTC-09",
+        "Pacific Standard Time (Mexico)",
+        "UTC-08",
+        "Pacific Standard Time",
+        "US Mountain Standard Time",
+        "Mountain Standard Time (Mexico)",
+        "Mountain Standard Time",
+        "Central America Standard Time",
+        "Central Standard Time",
+        "Easter Island Standard Time",
+        "Central Standard Time (Mexico)",
+        "Canada Central Standard Time",
+        "SA Pacific Standard Time",
+        "Eastern Standard Time (Mexico)",
+        "Eastern Standard Time",
+        "Haiti Standard Time",
+        "Cuba Standard Time",
+        "US Eastern Standard Time",
+        "Turks And Caicos Standard Time",
+        "Paraguay Standard Time",
+        "Atlantic Standard Time",
+        "Venezuela Standard Time",
+        "Central Brazilian Standard Time",
+        "SA Western Standard Time",
+        "Pacific SA Standard Time",
+        "Newfoundland Standard Time",
+        "Tocantins Standard Time",
+        "E. South America Standard Time",
+        "SA Eastern Standard Time",
+        "Argentina Standard Time",
+        "Greenland Standard Time",
+        "Montevideo Standard Time",
+        "Magallanes Standard Time",
+        "Saint Pierre Standard Time",
+        "Bahia Standard Time",
+        "UTC-02",
+        "Mid-Atlantic Standard Time",
+        "Azores Standard Time",
+        "Cape Verde Standard Time",
+        "UTC",
+        "Morocco Standard Time",
+        "GMT Standard Time",
+        "Greenwich Standard Time",
+        "W. Europe Standard Time",
+        "Central Europe Standard Time",
+        "Romance Standard Time",
+        "Sao Tome Standard Time",
+        "Central European Standard Time",
+        "W. Central Africa Standard Time",
+        "Jordan Standard Time",
+        "GTB Standard Time",
+        "Middle East Standard Time",
+        "Egypt Standard Time",
+        "E. Europe Standard Time",
+        "Syria Standard Time",
+        "West Bank Standard Time",
+        "South Africa Standard Time",
+        "FLE Standard Time",
+        "Israel Standard Time",
+        "Kaliningrad Standard Time",
+        "Sudan Standard Time",
+        "Libya Standard Time",
+        "Namibia Standard Time",
+        "Arabic Standard Time",
+        "Turkey Standard Time",
+        "Arab Standard Time",
+        "Belarus Standard Time",
+        "Russian Standard Time",
+        "E. Africa Standard Time",
+        "Iran Standard Time",
+        "Arabian Standard Time",
+        "Astrakhan Standard Time",
+        "Azerbaijan Standard Time",
+        "Russia Time Zone 3",
+        "Mauritius Standard Time",
+        "Saratov Standard Time",
+        "Georgian Standard Time",
+        "Caucasus Standard Time",
+        "Afghanistan Standard Time",
+        "West Asia Standard Time",
+        "Ekaterinburg Standard Time",
+        "Pakistan Standard Time",
+        "India Standard Time",
+        "Sri Lanka Standard Time",
+        "Nepal Standard Time",
+        "Central Asia Standard Time",
+        "Bangladesh Standard Time",
+        "Omsk Standard Time",
+        "Myanmar Standard Time",
+        "SE Asia Standard Time",
+        "Altai Standard Time",
+        "W. Mongolia Standard Time",
+        "North Asia Standard Time",
+        "N. Central Asia Standard Time",
+        "Tomsk Standard Time",
+        "China Standard Time",
+        "North Asia East Standard Time",
+        "Singapore Standard Time",
+        "W. Australia Standard Time",
+        "Taipei Standard Time",
+        "Ulaanbaatar Standard Time",
+        "Aus Central W. Standard Time",
+        "Transbaikal Standard Time",
+        "Tokyo Standard Time",
+        "North Korea Standard Time",
+        "Korea Standard Time",
+        "Yakutsk Standard Time",
+        "Cen. Australia Standard Time",
+        "AUS Central Standard Time",
+        "E. Australia Standard Time",
+        "AUS Eastern Standard Time",
+        "West Pacific Standard Time",
+        "Tasmania Standard Time",
+        "Vladivostok Standard Time",
+        "Lord Howe Standard Time",
+        "Bougainville Standard Time",
+        "Russia Time Zone 10",
+        "Magadan Standard Time",
+        "Norfolk Standard Time",
+        "Sakhalin Standard Time",
+        "Central Pacific Standard Time",
+        "Russia Time Zone 11",
+        "New Zealand Standard Time",
+        "UTC+12",
+        "Fiji Standard Time",
+        "Kamchatka Standard Time",
+        "Chatham Islands Standard Time",
+        "UTC+13",
+        "Tonga Standard Time",
+        "Samoa Standard Time",
+        "Line Islands Standard Time")]
+        $TimeZone
+
+    )
+
+
+        $FunctionAppObject.UpdateAppSetting("WEBSITE_TIME_ZONE", $TimeZone)
+
+
+}
 function sync-PoshServerlessFunctionApp 
 {
     <#
@@ -1574,18 +1908,21 @@ function sync-PoshServerlessFunctionApp
 
     )
 
+    $FunctionPath = join-path -Path $LocalFunctionPath -ChildPath $FunctionAppName
     if (test-path -Path $LocalFunctionPath -ErrorAction SilentlyContinue) {
 
-        $FunctionPath = join-path -Path $LocalFunctionPath -ChildPath $FunctionAppName
+        
 
         if (test-path -Path $FunctionPath -ErrorAction SilentlyContinue) {
             throw "The Path of The function $($LocalFunctionPath) is not empty"
+        }else {
+            new-item -Path $FunctionPath -ItemType Directory | out-null
         }
         
       
     } else {
         try {
-            new-item -Path $LocalFunctionPath -ItemType Directory | out-null
+            new-item -Path $FunctionPath -ItemType Directory | out-null
         }
         catch {
             Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
