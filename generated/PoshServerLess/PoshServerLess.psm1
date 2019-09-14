@@ -1679,6 +1679,56 @@ function Resolve-PoshServerlessFunctionApp
     $FunctionAppObject.LoadFunctionFromAzure($ResourceGroupName)
 
 }
+function set-PoshServerlessFunctionAppSetting 
+{
+    <#
+    .SYNOPSIS
+    
+    Add or Update an App Setting 
+    
+    .DESCRIPTION
+    
+    Add or Update an App Setting 
+    
+    
+    .PARAMETER FunctionsAppObject
+    The Function App object
+
+    .PARAMETER AppSettingName
+    string Representing the timezone see 
+    the value can't be FUNCTIONS_WORKER_RUNTIME,AzureWebJobsStorage,FUNCTIONS_EXTENSION_VERSION,WEBSITE_CONTENTAZUREFILECONNECTIONSTRING,WEBSITE_CONTENTSHARE
+
+    .PARAMETER AppSettingValue
+    string Representing the timezone see 
+    
+    .EXAMPLE
+    
+
+           
+    #>
+
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject,
+
+        [parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -notin @("FUNCTIONS_WORKER_RUNTIME","AzureWebJobsStorage","FUNCTIONS_EXTENSION_VERSION","WEBSITE_CONTENTAZUREFILECONNECTIONSTRING","WEBSITE_CONTENTSHARE")})]
+        [string]
+        $AppSettingName,
+
+        [parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $AppSettingValue
+    )
+
+    write-vebose "Setting value for $($AppSettingName)"
+    
+}
 function Set-PoshServerlessFunctionAppTimezone 
 {
 
@@ -2000,10 +2050,7 @@ function update-PoshServerlessFunctionTrigger
     $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
 
     update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
-
-
-
-           
+   
     #>
 
     [CmdletBinding()]

@@ -1,5 +1,6 @@
 # Release Note
 
+* V 0.1.4 Add a cmdlet to set App Settings and Timezone
 * V 0.1.4 Add a cmdlet to get App Settings and to load App Setting
 * V 0.1.3 Add a method to extract Function App settings from Azure
 * V 0.1.2 change in the way the tool download the function app and correct a bug where the tools downloaded the Microsoft and Bin Folder
