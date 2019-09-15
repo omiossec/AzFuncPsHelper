@@ -8,6 +8,8 @@ $ModuleManifestPath = "$($BuildModulePath)\generated\$($ModuleName)\$($ModuleNam
 
 Get-Module -Name $ModuleName | remove-module
 
+import-module -name AZ
+
 
 $ModuleInformation = Import-module -Name $ModuleManifestPath -PassThru
 
