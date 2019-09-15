@@ -18,7 +18,9 @@ Initialize-PoshServerLessFunctionApp [-FunctionAppObject] <AzFunctionsApp> [-Res
 ```
 
 ## DESCRIPTION
-Create an Azure Function App in Azure And deploy the current function App object in
+Create an Azure Function App in Azure And deploy the current function App object in 
+This cmdlet can be use for creating a function localy and then create the function App in Azure and then deploy the functions
+or to copy a functions app
 
 ## EXAMPLES
 
@@ -26,6 +28,16 @@ Create an Azure Function App in Azure And deploy the current function App object
 ```
 Initialize-PoshServerLessFunctionApp -FunctionAppObject $MyFunctionApp -RessourceGroup MyRg
 ```
+
+to copy a function app 
+
+$functionsAppToCopy = sync-PoshServerlessFunctionApp -FunctionName MyFunctionApp01 -ResourceGroupName MyRessourceGroup -LocalFunctionPath 'c:\work\Myfunction'           
+
+$NewFunctionAppFromCopy = get-PoshServerlessFunctionApp -FunctionAppPath "c:\work\Myfunction\MyFunctionApp01" -FunctionAppName FunctionAppUniqueName
+
+Initialize-PoshServerLessFunctionApp -FunctionAppObject $NewFunctionAppFromCopy -RessourceGroup MyRg
+
+This will copy the content of MyFunctionApp01 into FunctionAppUniqueName
 
 ## PARAMETERS
 
