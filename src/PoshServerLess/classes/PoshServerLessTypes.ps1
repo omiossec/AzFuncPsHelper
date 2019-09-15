@@ -1,6 +1,4 @@
-
-
-
+import-module -name AZ -force -ErrorAction SilentlyContinue
 
 class AzFunctionsApp {
 
@@ -11,6 +9,8 @@ class AzFunctionsApp {
     [string] $FunctionAppStorageName
     [string] $FunctionAppStorageShareName
     [string] $FunctionAppLocation
+    [string] $FunctionTimeZone
+    [string] $FunctionRuntime = "PowerShell"
     
     hidden [Boolean] $FunctionAppExistLocaly = $false
     [hashtable] $functionAppExtension = @{}
@@ -87,7 +87,7 @@ class AzFunctionsApp {
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup) {
 
-        if ($this.TestAzConnection()) {
+        if (TestAzConnection)  {
             try {
                 $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $FunctionResourceGroup -Name $FunctionAppName 
 
@@ -98,15 +98,19 @@ class AzFunctionsApp {
 
                 $this.FunctionAppLocation = $FunctionAppConfig.Location
                 $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
-                $WorkerRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+                $This.FunctionRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
                 $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
                 
+                $this.FunctionTimeZone = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_TIME_ZONE").Value
+
                 $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
                 $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
                 $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
                 
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
                 $this.FunctionAppSettings = $FunctionStorageConfigHash
+
+                #$this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
 
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
@@ -128,6 +132,23 @@ class AzFunctionsApp {
             throw "Not connected to Azure, use Login-AzAccount first"
         }
     }
+
+    [Boolean] TestFunctionAppExistInAzure () {
+        try {
+            $DnsResolve = Resolve-DnsName -Name "$($this.FunctionAppName).azurewebsites.net" -ErrorAction SilentlyContinue
+            if ($null -eq $DnsResolve) {
+                return $false
+            } else {
+                return $true
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            exit
+        }       
+    }
+
+
 
     hidden [void] ListFunction () {
 
@@ -162,7 +183,70 @@ class AzFunctionsApp {
  
     }
 
+    [void] GetAppSettings ([Collections.Generic.List[Microsoft.Azure.Management.WebSites.Models.NameValuePair]] $AppSettingList) {
 
+        foreach ($appSetting in $AppSettingList) {
+            write-verbose "Adding Key $($appSetting.name) / Value $($appSetting.value)"
+            $this.FunctionAppSettings.Add($appSetting.name, $appSetting.value)
+        }
+    }
+
+    [void] LoadFunctionFromAzure ([string] $RessourceGroup) {
+
+        $this.RessourceGroup = $RessourceGroup
+
+        $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $this.RessourceGroup -Name $this.FunctionAppName 
+        
+
+        $this.FunctionAppLocation = $FunctionAppConfig.Location
+        $this.FunctionHostName = $FunctionAppConfig.HostNames[0]
+        $This.FunctionRuntime = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_WORKER_RUNTIME").Value
+        $FunctionExtVerion = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "FUNCTIONS_EXTENSION_VERSION").Value
+        
+        $this.FunctionTimeZone = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_TIME_ZONE").Value
+
+        $this.FunctionAppStorageShareName = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "WEBSITE_CONTENTSHARE").Value
+        $FunctionStorageConfigString = ($FunctionAppConfig.SiteConfig.AppSettings | where-object name -eq "AzureWebJobsStorage").Value
+        $FunctionStorageConfigHash = ConvertFrom-StringData -StringData $FunctionStorageConfigString.Replace(";","`r`n")
+        
+        $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
+        $this.FunctionAppSettings = $FunctionStorageConfigHash
+
+        #$this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
+
+        if ($FunctionExtVerion -ne "~2") {
+            throw "Error this module only support Azure functions v2 with PowerShell"
+        }
+
+    }
+
+    [void] UpdateAppSetting ([string] $Name, [string] $Value) {
+
+        if ($null -eq $this.FunctionAppSettings[$name] ) {
+            $this.FunctionAppSettings.add($name,$value)        
+        }elseif ($name -in @("FUNCTIONS_WORKER_RUNTIME","AzureWebJobsStorage","FUNCTIONS_EXTENSION_VERSION","WEBSITE_CONTENTAZUREFILECONNECTIONSTRING","WEBSITE_CONTENTSHARE")) {
+            throw "You can not change this function App Setting, FUNCTIONS_WORKER_RUNTIME,AzureWebJobsStorage,FUNCTIONS_EXTENSION_VERSION,WEBSITE_CONTENTAZUREFILECONNECTIONSTRING,WEBSITE_CONTENTSHARE"
+        }
+        else {
+            $this.FunctionAppSettings[$name] = $value
+        }
+
+        try {
+            if ($null -ne $this.RessourceGroup) {
+                Set-AzWebApp -AppSettings $this.FunctionAppSettings -Name $this.FunctionAppName -ResourceGroupName $this.RessourceGroup
+            } else {
+                throw "You can't update App Settings as the object do not have any resource group, add a resource group"
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        }
+
+    }
+
+
+
+ 
 
     [void] RemoveFunction ([string] $Functionname) {
 
@@ -215,12 +299,31 @@ class AzFunctionsApp {
         
     }
 
-    [boolean] FunctionAppCreated () {
-        return $false
-    }
+  
 
-    [void] deployFunctionApp () {
+ 
+    [String] deployFunctionApp () {
+        try {
+            
+            if (  -not $this.TestFunctionAppExistInAzure() ) {
 
+                $ModulePath = $PSScriptRoot 
+               
+                $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
+                $jsonArmTemplateObject = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json -AsHashtable)
+                $DeploiementName = CreateUniqueString -BufferSize 15
+                New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
+                return $DeploiementName
+            }
+            else {
+                throw "The Azure Functions App $($this.FunctionAppName) all ready exist in Azure"
+                return $null
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            exit
+        }
     }
 
     [void] getFunctiondeploymentStatus ([String] $DeployementUserName, [String] $DeployementPassword) {
@@ -281,27 +384,7 @@ class AzFunctionsApp {
 
     
 
-    [boolean] TestAzConnection () {
 
-        try {
-            $AzContext = get-azContext 
-            if ($null -eq $AzContext) {
-                return $false
-            }
-            else {
-                return $true
-            }
-        }
-        catch [System.Management.Automation.CommandNotFoundException] {
-            write-error "No AZURE PowerShell module"
-            return $false
-        }
-        catch {
-            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-            return $false
-        }
-         
-    }
 
 
 }
@@ -767,10 +850,10 @@ function GetFile (
             
             $relative = $AzurePath.replace("/site/wwwroot","")
             $relative = $relative.replace("/","\")
-            $relative = Join-Path -Path $LocalPath -ChildPath $relative
-            $relative = Join-Path -Path $relative -ChildPath $fileobject.Name
-                     
-            $fileobject | Get-AzStorageFileContent -Destination $relative
+            $relativeLocalPath = Join-Path -Path $LocalPath -ChildPath $relative
+            $RelativeFilePath = Join-Path -Path $relativeLocalPath -ChildPath $fileobject.Name
+            write-verbose "Copy $($fileobject.Name) File to path $($RelativeFilePath) Path $($LocalPath )"
+            $fileobject | Get-AzStorageFileContent -Destination $RelativeFilePath
 
         }
         elseif (($fileobject.name -ne "Microsoft") -and ($fileobject.name -ne "bin") ) {
@@ -785,4 +868,56 @@ function GetFile (
             GetFile -CloudFilesObject $fileobject -context $context -AzurePath $azPath -LocalPath $localPath -AzureStorageShareName $AzureStorageShareName 
         }
     }
+}
+
+function getMsTimeZone () {
+
+    $ModulePath = $PSScriptRoot 
+
+    try {
+        $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
+        $ObjectData = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json)
+
+        return $ObjectData.parameters.timezone.allowedValues
+
+    }
+    catch {
+        Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+    }
+
+}
+
+function TestModulePresent ([string] $moduleName="Az") {
+
+    return ! $null -eq (get-module -ListAvailable | where-object name -eq $moduleName)
+}
+
+function CreateUniqueString ([int] $BufferSize= 10) {
+
+    $randomArray = ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count $BufferSize  | ForEach-Object {[char]$_})
+
+    return -join $randomArray
+
+}
+
+Function TestAzConnection () {
+
+    try {
+        $AzContext = get-azContext 
+        if ($null -eq $AzContext) {
+            return $false
+        }
+        else {
+            return $true
+        }
+    }
+    catch [System.Management.Automation.CommandNotFoundException] {
+        write-error "No AZURE PowerShell module"
+        return $false
+    }
+    catch {
+        Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        return $false
+    }
+     
 }

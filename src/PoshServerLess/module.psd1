@@ -12,7 +12,7 @@
 # RootModule = ''
 
 # Version number of this module.
-ModuleVersion = '0.1.0'
+ModuleVersion = '0.1.3'
 
 # Supported PSEditions
 CompatiblePSEditions = @("core","desktop")
@@ -95,7 +95,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags = @("Azure Functions","serverless","function","binding")
+        Tags = @("AzureFunctions","serverless","function","binding")
 
         # A URL to the license for this module.
         LicenseUri = 'https://raw.githubusercontent.com/omiossec/AzFuncPsHelper/master/LICENSE'

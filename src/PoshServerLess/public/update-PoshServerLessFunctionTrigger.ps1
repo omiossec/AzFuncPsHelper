@@ -24,10 +24,7 @@ function update-PoshServerlessFunctionTrigger
     $TriggerObject = new-PoshServerlessFunctionTrigger  -TriggerName QueueTrigger  -TriggerType queueTrigger -queueName myQueue -connection MyAzFuncStorage
 
     update-PoshServerlessFunctionTrigger -FunctionObject myFunction -TriggerObject $TriggerObject
-
-
-
-           
+   
     #>
 
     [CmdletBinding()]

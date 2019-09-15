@@ -46,18 +46,21 @@ function sync-PoshServerlessFunctionApp
 
     )
 
+    $FunctionPath = join-path -Path $LocalFunctionPath -ChildPath $FunctionAppName
     if (test-path -Path $LocalFunctionPath -ErrorAction SilentlyContinue) {
 
-        $FunctionPath = join-path -Path $LocalFunctionPath -ChildPath $FunctionAppName
+        
 
         if (test-path -Path $FunctionPath -ErrorAction SilentlyContinue) {
             throw "The Path of The function $($LocalFunctionPath) is not empty"
+        }else {
+            new-item -Path $FunctionPath -ItemType Directory | out-null
         }
         
       
     } else {
         try {
-            new-item -Path $LocalFunctionPath -ItemType Directory | out-null
+            new-item -Path $FunctionPath -ItemType Directory | out-null
         }
         catch {
             Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
