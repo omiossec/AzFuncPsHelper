@@ -137,6 +137,38 @@ publish-PoshServerLessFunctionApp -FunctionAppObject $myFunctionApp
 
 ## The AzFunction Object
 
-## Cmdlet list 
+|Name|Description|
+|----|-----------|
+|FunctionName | |
+|FunctionPath | |
+|TriggerBinding | |
+|Binding | |
+|overwrite | |
+|FunctionExist | |
+|JsonFunctionBindings | |
 
-* 
+
+
+## Cmdlet list
+
+* Initialize-PoshServerLessFunctionApp
+* Resolve-PoshServerlessFunctionApp
+* Set-PoshServerlessFunctionAppTimezone
+* add-PoshServerLessFunctionBinding
+* add-PoshServerLessFunctionToApp
+* get-PoshServerLessFunction
+* get-PoshServerLessFunctionApp
+* get-PoshServerLessFunctionBinding
+* get-PoshServerLessFunctionTrigger
+* new-PoshServerLessFunction
+* new-PoshServerLessFunctionBinding
+* new-PoshServerLessFunctionTrigger
+* new-PoshServerlessFunctionApp
+* publish-PoshServerLessFunctionApp
+* remove-PoshServerLessFunctionBinding
+* remove-PoshServerLessFunctionToApp
+* set-PoshServerlessFunctionAppSetting
+* sync-PoshServerlessFunctionApp
+* test-PoshServerLessFunctionBinding
+* update-PoshServerLessFunctionTrigger
+* write-PoshServerLessFunction
