@@ -14,6 +14,7 @@ param (
 )
 
 Install-Module Az -Force -AllowClobber
+install-Module platyPS -Force -AllowClobber 
 import-module -name AZ 
 
 
