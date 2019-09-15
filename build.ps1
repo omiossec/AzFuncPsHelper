@@ -13,6 +13,12 @@ param (
     $ModuleVersion=[Environment]::GetEnvironmentVariable('ModuleVersion')
 )
 
+Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+
+Install-Module -Name Az -Force -Verbose -Scope CurrentUser
+Install-Module -Name platyPS -Force -Verbose -Scope CurrentUser
+
+
 $PathSeparator = [IO.Path]::DirectorySeparatorChar
 
 #Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
@@ -83,7 +89,7 @@ Update-ModuleManifest -Path $BuildModuleManifest -ModuleVersion $ModuleVersion
 Update-ModuleManifest -Path $BuildModuleManifest -RootModule "$($ModuleName).psm1"
 
 
-#Import-Module platyPS -Force
+Import-Module platyPS -Force
 
 
 
@@ -91,5 +97,5 @@ $ModuleInformation = Import-module -Name $BuildModuleManifest -PassThru
 
 
 
-#New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc -ErrorAction SilentlyContinue
+New-MarkdownHelp -Module $ModuleName -OutputFolder $BuildModuleDoc -ErrorAction SilentlyContinue
 
