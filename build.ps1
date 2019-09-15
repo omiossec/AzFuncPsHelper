@@ -13,6 +13,7 @@ param (
     $ModuleVersion=[Environment]::GetEnvironmentVariable('ModuleVersion')
 )
 
+Install-Module Az -Force -AllowClobber
 import-module -name AZ 
 
 
