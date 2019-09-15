@@ -13,10 +13,7 @@ param (
     $ModuleVersion=[Environment]::GetEnvironmentVariable('ModuleVersion')
 )
 
-Install-PackageProvider -Name NuGet -RequiredVersion 2.8.5.201 -Force -Scope CurrentUser
-
-Install-Module -Name Az -Force -Verbose -Scope CurrentUser
-Install-Module -Name platyPS -Force -Verbose -Scope CurrentUser
+import-module -name AZ 
 
 
 $PathSeparator = [IO.Path]::DirectorySeparatorChar
