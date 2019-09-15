@@ -1,3 +1,4 @@
+import-module -name AZ -force -ErrorAction SilentlyContinue
 
 class AzFunctionsApp {
 
@@ -86,7 +87,7 @@ class AzFunctionsApp {
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup) {
 
-        if ($this.TestAzConnection()) {
+        if (TestAzConnection)  {
             try {
                 $FunctionAppConfig = Get-AzWebApp -ResourceGroupName $FunctionResourceGroup -Name $FunctionAppName 
 
@@ -109,7 +110,7 @@ class AzFunctionsApp {
                 $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
                 $this.FunctionAppSettings = $FunctionStorageConfigHash
 
-                $this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
+                #$this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
 
                 if ($FunctionExtVerion -ne "~2") {
                     throw "Error this module only support Azure functions v2 with PowerShell"
@@ -132,7 +133,7 @@ class AzFunctionsApp {
         }
     }
 
-    hidden [Boolean] TestFunctionAppExistInAzure () {
+    [Boolean] TestFunctionAppExistInAzure () {
         try {
             $DnsResolve = Resolve-DnsName -Name "$($this.FunctionAppName).azurewebsites.net" -ErrorAction SilentlyContinue
             if ($null -eq $DnsResolve) {
@@ -143,13 +144,11 @@ class AzFunctionsApp {
         }
         catch {
             Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-            return $false
+            exit
         }       
     }
 
-    hidden [void] CreateFunctionAppInAzure () {
 
-    }
 
     hidden [void] ListFunction () {
 
@@ -213,7 +212,7 @@ class AzFunctionsApp {
         $this.FunctionAppStorageName = $FunctionStorageConfigHash.AccountName
         $this.FunctionAppSettings = $FunctionStorageConfigHash
 
-        $this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
+        #$this.GetAppSettings($FunctionAppConfig.SiteConfig.AppSettings)
 
         if ($FunctionExtVerion -ne "~2") {
             throw "Error this module only support Azure functions v2 with PowerShell"
@@ -230,6 +229,17 @@ class AzFunctionsApp {
         }
         else {
             $this.FunctionAppSettings[$name] = $value
+        }
+
+        try {
+            if ($null -ne $this.RessourceGroup) {
+                Set-AzWebApp -AppSettings $this.FunctionAppSettings -Name $this.FunctionAppName -ResourceGroupName $this.RessourceGroup
+            } else {
+                throw "You can't update App Settings as the object do not have any resource group, add a resource group"
+            }
+        }
+        catch {
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
         }
 
     }
@@ -289,17 +299,30 @@ class AzFunctionsApp {
         
     }
 
-    [boolean] FunctionAppCreated () {
-        return $false
-    }
+  
 
  
-    [void] deployFunctionApp () {
+    [String] deployFunctionApp () {
         try {
+            
+            if (  -not $this.TestFunctionAppExistInAzure() ) {
 
+                $ModulePath = $PSScriptRoot 
+               
+                $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
+                $jsonArmTemplateObject = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json -AsHashtable)
+                $DeploiementName = CreateUniqueString -BufferSize 15
+                New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
+                return $DeploiementName
+            }
+            else {
+                throw "The Azure Functions App $($this.FunctionAppName) all ready exist in Azure"
+                return $null
+            }
         }
         catch {
-
+            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            exit
         }
     }
 
@@ -361,27 +384,7 @@ class AzFunctionsApp {
 
     
 
-    [boolean] TestAzConnection () {
 
-        try {
-            $AzContext = get-azContext 
-            if ($null -eq $AzContext) {
-                return $false
-            }
-            else {
-                return $true
-            }
-        }
-        catch [System.Management.Automation.CommandNotFoundException] {
-            write-error "No AZURE PowerShell module"
-            return $false
-        }
-        catch {
-            Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-            return $false
-        }
-         
-    }
 
 
 }
@@ -889,16 +892,34 @@ function TestModulePresent ([string] $moduleName="Az") {
     return ! $null -eq (get-module -ListAvailable | where-object name -eq $moduleName)
 }
 
+function CreateUniqueString ([int] $BufferSize= 10) {
 
-function TestAzureConnection () {
+    $randomArray = ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count $BufferSize  | ForEach-Object {[char]$_})
+
+    return -join $randomArray
+
+}
+
+Function TestAzConnection () {
 
     try {
-        $null = Get-AzContext
-        return $true
+        $AzContext = get-azContext 
+        if ($null -eq $AzContext) {
+            return $false
+        }
+        else {
+            return $true
+        }
     }
-    catch {
+    catch [System.Management.Automation.CommandNotFoundException] {
+        write-error "No AZURE PowerShell module"
         return $false
     }
+    catch {
+        Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+        return $false
+    }
+     
 }
 function add-PoshServerlessFunctionBinding 
 {
@@ -1130,6 +1151,80 @@ function get-PoshServerlessFunctionTrigger
     return $FunctionObject.TriggerBinding
 
 }
+function Initialize-PoshServerLessFunctionApp {
+
+    <#
+    .SYNOPSIS
+    
+    Create an Azure Function App in Azure And deploy the current function App object in 
+    
+    .DESCRIPTION
+    
+    Create an Azure Function App in Azure And deploy the current function App object in 
+    This cmdlet can be use for creating a function localy and then create the function App in Azure and then deploy the functions
+    or to copy a functions app
+    
+    .PARAMETER FunctionAppObject
+    In or Out
+    Queue binding accept only Out direction
+
+    .PARAMETER RessourceGroup
+    The ressource group 
+    
+        
+    .EXAMPLE
+    
+    Initialize-PoshServerLessFunctionApp -FunctionAppObject $MyFunctionApp -RessourceGroup MyRg
+
+    to copy a function app 
+
+    $functionsAppToCopy = sync-PoshServerlessFunctionApp -FunctionName MyFunctionApp01 -ResourceGroupName MyRessourceGroup -LocalFunctionPath 'c:\work\Myfunction'           
+    
+    $NewFunctionAppFromCopy = get-PoshServerlessFunctionApp -FunctionAppPath "c:\work\Myfunction\MyFunctionApp01" -FunctionAppName FunctionAppUniqueName
+
+    Initialize-PoshServerLessFunctionApp -FunctionAppObject $NewFunctionAppFromCopy -RessourceGroup MyRg
+
+    This will copy the content of MyFunctionApp01 into FunctionAppUniqueName
+           
+    #>
+
+
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+        [AzFunctionsApp]
+        $FunctionAppObject, 
+
+        [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
+        [string]
+        $RessourceGroup
+    )
+
+    $FunctionAppObject.RessourceGroup = $RessourceGroup
+
+
+  
+    if ( TestAzConnection ) {
+        if (-not $functionAppObject.TestFunctionAppExistInAzure()) {
+            $FunctionAppObject.deployFunctionApp()
+
+            $FunctionAppObject.PublishFunctionApp()
+
+            $FunctionAppObject.LoadFunctionFromAzure($FunctionAppObject.RessourceGroup)
+        }
+        else {
+            throw "The Azure Functions App $($this.FunctionAppName) all ready exist in Azure"
+        }
+
+    }else {
+        throw "You are not connected to Azure"
+    }
+
+      
+ 
+
+
+}
 function new-PoshServerlessFunction 
 {
     <#
@@ -1332,19 +1427,19 @@ function new-PoshServerlessFunctionBinding
        [string]
        $tableName,  
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false, ParameterSetName = "table")]
        [string]
        $partitionKey, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [string]
        $rowkey, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [int]
        $take, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [string]
        $filter 
 
@@ -1570,11 +1665,6 @@ function publish-PoshServerLessFunctionApp
 
 }
 
-function remove-PoshServerlesstionBinding 
-{
-
-    
-}
 function remove-PoshServerlessFunctionBinding {
 
 
@@ -1726,7 +1816,15 @@ function set-PoshServerlessFunctionAppSetting
         $AppSettingValue
     )
 
-    write-vebose "Setting value for $($AppSettingName)"
+    write-verbose "Setting value for $($AppSettingName)"
+
+    $PatternWhiteSpace ="[\s-[\r\n]]" 
+    if (! $AppSettingName -match $PatternWhiteSpace) {
+        $FunctionAppObject.UpdateAppSetting($AppSettingName, $AppSettingValue)
+    }
+    else {
+        throw "White Space are not allowed in App Settings Name"
+    }
     
 }
 function Set-PoshServerlessFunctionAppTimezone 

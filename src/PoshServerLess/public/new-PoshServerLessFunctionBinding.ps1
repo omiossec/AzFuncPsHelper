@@ -75,19 +75,19 @@ function new-PoshServerlessFunctionBinding
        [string]
        $tableName,  
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false, ParameterSetName = "table")]
        [string]
        $partitionKey, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [string]
        $rowkey, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [int]
        $take, 
 
-       [parameter(ParameterSetName = "table")]
+       [parameter(Mandatory = $false,ParameterSetName = "table")]
        [string]
        $filter 
 
