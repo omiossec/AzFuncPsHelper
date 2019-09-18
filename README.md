@@ -21,11 +21,11 @@ Install-Module -Name PoshServerLess -Scope CurrentUser
 
 ## Documentation 
 
-You can check the full documentation (here)[https://github.com/omiossec/AzFuncPsHelper/tree/master/doc]
+You can check the full documentation [here](https://github.com/omiossec/AzFuncPsHelper/tree/master/doc)
 
 ## Release notes 
 
-You can find the release notes (here)[https://github.com/omiossec/AzFuncPsHelper/blob/master/changelog.md]
+You can find the release notes [here](https://github.com/omiossec/AzFuncPsHelper/blob/master/changelog.md)
  
 ## Usage
 
