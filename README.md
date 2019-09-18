@@ -11,6 +11,21 @@ This project started as a side project to start working on OOP with a PowerShell
  One of my main problems when working with Azure Functions v2 with PowerShell is to deal with Binding and Trigger. How to remember what binding I can use, which direction, which extension. It’s easy when using the portal, but if you need to create and modify function locally it’s not the best way. 
 This is only a Proof of Concept for the moment. There is a lot of work to do. 
 The goal is to publish the module in the PowerShell Gallery. 
+
+## Installation
+This module is listed on powershellgallery
+
+```powershell
+Install-Module -Name PoshServerLess -Scope CurrentUser
+```
+
+## Documentation 
+
+You can check the full documentation (here)[https://github.com/omiossec/AzFuncPsHelper/tree/master/doc]
+
+## Release notes 
+
+You can find the release notes (here)[https://github.com/omiossec/AzFuncPsHelper/blob/master/changelog.md]
  
 ## Usage
 
@@ -20,6 +35,9 @@ There are 4 main objects used in this module
 * PoshServerLessFunction, the representation of one Function in a an Azure  function App
 * PoshServerLessFunctionTrigger, the representation of the trigger of a function in an Azure function App
 * PoshServerLessFunctionBinding, the representation of binding of a function in an Azure function App
+
+
+
 
 ### Load an existing Azure Functions localy
 
