@@ -302,7 +302,7 @@ class AzFunctionsApp {
   
 
  
-    [String] deployFunctionApp () {
+    [String] deployFunctionApp ([bool] $ManagedIdentity=$true) {
         try {
             
             if (  -not $this.TestFunctionAppExistInAzure() ) {
@@ -312,7 +312,22 @@ class AzFunctionsApp {
                 $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
                 $jsonArmTemplateObject = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json -AsHashtable)
                 $DeploiementName = CreateUniqueString -BufferSize 15
-                New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
+
+                $DeployParam = @{
+                    "name" = $DeploiementName
+                    "mode" = "Incremental"
+                    "ResourceGroupName" = $this.RessourceGroup
+                    "TemplateObject" = $jsonArmTemplateObject
+                    "functionAppName" = $this.FunctionAppName
+                }
+
+                if (! $ManagedIdentity) {
+                    $DeployParam.add("ManagedIdentity", $false)
+                }
+
+                New-AzResourceGroupDeployment @DeployParam
+
+                #New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
                 return $DeploiementName
             }
             else {

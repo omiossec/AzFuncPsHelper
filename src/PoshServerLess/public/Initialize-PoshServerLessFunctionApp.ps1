@@ -44,7 +44,10 @@ function Initialize-PoshServerLessFunctionApp {
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
         [string]
-        $RessourceGroup
+        $RessourceGroup,
+
+        [switch] 
+        $ManagedIdentity
     )
 
     $FunctionAppObject.RessourceGroup = $RessourceGroup
@@ -53,9 +56,12 @@ function Initialize-PoshServerLessFunctionApp {
   
     if ( TestAzConnection ) {
         if (-not $functionAppObject.TestFunctionAppExistInAzure()) {
-            $FunctionAppObject.deployFunctionApp()
 
-            $FunctionAppObject.PublishFunctionApp()
+            if ($ManagedIdentity) {
+                $FunctionAppObject.deployFunctionApp( $ManagedIdentity )
+            } else {
+                $FunctionAppObject.PublishFunctionApp()
+            }         
 
             $FunctionAppObject.LoadFunctionFromAzure($FunctionAppObject.RessourceGroup)
         }
