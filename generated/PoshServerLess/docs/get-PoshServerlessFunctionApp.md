@@ -8,7 +8,7 @@ schema: 2.0.0
 # get-PoshServerlessFunctionApp
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Create an Azure Function App object by reading a folder
 
 ## SYNTAX
 
@@ -17,7 +17,9 @@ get-PoshServerlessFunctionApp [-FunctionAppPath] <String> [-FunctionAppName] <St
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+Create an Azure Function App object by reading a folder
+If you have download a functions App or create it you can use this function to create an AzFunctionsApp object from the folder
+It will read the host.json and function folder
 
 ## EXAMPLES
 
@@ -30,8 +32,9 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -FunctionAppName
-{{ Fill FunctionAppName Description }}
+### -FunctionAppPath
+\[String\] the function App Path
+if the path doesn't exist the cmdlet will fail
 
 ```yaml
 Type: String
@@ -41,12 +44,12 @@ Aliases:
 Required: True
 Position: 1
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -FunctionAppPath
-{{ Fill FunctionAppPath Description }}
+### -FunctionAppName
+\[String\] the function App Name
 
 ```yaml
 Type: String
@@ -54,9 +57,9 @@ Parameter Sets: (All)
 Aliases:
 
 Required: True
-Position: 0
+Position: 2
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -65,12 +68,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-### System.String
-
 ## OUTPUTS
 
 ### AzFunctionsApp
-
 ## NOTES
 
 ## RELATED LINKS

@@ -9,6 +9,13 @@
                 "description": "Specify the name of the function application"
               }
         },
+        "ManagedIdentity": {
+            "type": "string",
+            "defaultValue": "yes",
+            "metadata": {
+                "description": "Specify if the function need a Managed System Identity or not"
+              }
+        },
         "location": {
             "type": "string",
             "defaultValue": "[resourceGroup().location]",
@@ -178,7 +185,8 @@
     },
     "variables": {
         "hostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
-        "storageAccountName": "[concat('stofunc', uniquestring(resourceGroup().id))]"
+        "storageAccountName": "[concat('stofunc', uniquestring(resourceGroup().id))]",
+        "ManagedSystemIdentity": "[if(equals(parameters('ManagedIdentity'), 'yes'), 'SystemAssigned', 'None')]"
     },
     "resources": [
         {
@@ -192,7 +200,7 @@
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
             ],
             "identity": {
-                "type": "SystemAssigned"
+                "type": "[variables('ManagedSystemIdentity')]"
             },
             "properties": {
                 "siteConfig": {
@@ -226,17 +234,7 @@
                 "name": "[parameters('functionAppName')]",
                 "clientAffinityEnabled": false,
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
-            },
-            "resources": [
-                {
-                  "apiVersion": "2015-08-01",
-                  "name": "web",
-                  "type": "sourcecontrols",
-                  "dependsOn": [
-                    "[resourceId('Microsoft.Web/Sites/', parameters('functionAppName'))]"
-                  ]
-                }
-              ]
+            }
             
         },
         {

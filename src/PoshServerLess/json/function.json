@@ -186,7 +186,7 @@
     "variables": {
         "hostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
         "storageAccountName": "[concat('stofunc', uniquestring(resourceGroup().id))]",
-        "ManagedSystemIdentiy": "[if(equals(parameters('ManagedIdentity'), 'Yes'), 'SystemAssigned', 'None')]"
+        "ManagedSystemIdentity": "[if(equals(parameters('ManagedIdentity'), 'yes'), 'SystemAssigned', 'None')]"
     },
     "resources": [
         {
@@ -200,7 +200,7 @@
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
             ],
             "identity": {
-                "type": "[variables('ManagedSystemIdentiy')]"
+                "type": "[variables('ManagedSystemIdentity')]"
             },
             "properties": {
                 "siteConfig": {
@@ -234,17 +234,7 @@
                 "name": "[parameters('functionAppName')]",
                 "clientAffinityEnabled": false,
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
-            },
-            "resources": [
-                {
-                  "apiVersion": "2015-08-01",
-                  "name": "web",
-                  "type": "sourcecontrols",
-                  "dependsOn": [
-                    "[resourceId('Microsoft.Web/Sites/', parameters('functionAppName'))]"
-                  ]
-                }
-              ]
+            }
             
         },
         {

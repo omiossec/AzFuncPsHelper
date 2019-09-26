@@ -294,8 +294,6 @@ class AzFunctionsApp {
         else {
             throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
         }
-
-
         
     }
 
@@ -314,16 +312,27 @@ class AzFunctionsApp {
                 $DeploiementName = CreateUniqueString -BufferSize 15
 
                 $DeployParam = @{
-                    "name" = $DeploiementName
+                    
                     "mode" = "Incremental"
                     "ResourceGroupName" = $this.RessourceGroup
                     "TemplateObject" = $jsonArmTemplateObject
                     "functionAppName" = $this.FunctionAppName
                 }
 
-                if (! $ManagedIdentity) {
-                    $DeployParam.add("ManagedIdentity", $false)
+                if ($null -ne $this.FunctionAppLocation) {
+                    $DeployParam.add("location", $this.FunctionAppLocation)
                 }
+
+                if (! $ManagedIdentity) {
+                    $DeployParam.add("ManagedIdentity", "no")
+                } else {
+                    $DeployParam.add("ManagedIdentity", "yes")
+                }
+
+                # implemente test 
+
+                $DeployParam.add("name", $DeploiementName)
+                
 
                 New-AzResourceGroupDeployment @DeployParam
 
