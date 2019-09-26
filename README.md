@@ -24,7 +24,7 @@ You can check the full documentation [here](https://github.com/omiossec/AzFuncPs
 ## Release notes 
 
 You can find the release notes [here](https://github.com/omiossec/AzFuncPsHelper/blob/master/changelog.md)
- 
+
 ## Usage
 
 There are 4 main objects used in this module
