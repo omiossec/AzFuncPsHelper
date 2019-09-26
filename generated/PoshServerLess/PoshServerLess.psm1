@@ -294,15 +294,13 @@ class AzFunctionsApp {
         else {
             throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
         }
-
-
         
     }
 
   
 
  
-    [String] deployFunctionApp () {
+    [String] deployFunctionApp ([bool] $ManagedIdentity=$true) {
         try {
             
             if (  -not $this.TestFunctionAppExistInAzure() ) {
@@ -312,7 +310,33 @@ class AzFunctionsApp {
                 $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
                 $jsonArmTemplateObject = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json -AsHashtable)
                 $DeploiementName = CreateUniqueString -BufferSize 15
-                New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
+
+                $DeployParam = @{
+                    
+                    "mode" = "Incremental"
+                    "ResourceGroupName" = $this.RessourceGroup
+                    "TemplateObject" = $jsonArmTemplateObject
+                    "functionAppName" = $this.FunctionAppName
+                }
+
+                if ($null -ne $this.FunctionAppLocation) {
+                    $DeployParam.add("location", $this.FunctionAppLocation)
+                }
+
+                if (! $ManagedIdentity) {
+                    $DeployParam.add("ManagedIdentity", "no")
+                } else {
+                    $DeployParam.add("ManagedIdentity", "yes")
+                }
+
+                # implemente test 
+
+                $DeployParam.add("name", $DeploiementName)
+                
+
+                New-AzResourceGroupDeployment @DeployParam
+
+                #New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
                 return $DeploiementName
             }
             else {
@@ -1192,6 +1216,9 @@ function Initialize-PoshServerLessFunctionApp {
 
     .PARAMETER RessourceGroup
     The ressource group 
+
+    .PARAMETER ManagedIdentity
+    Indicate if the Function App need Managed Identity
     
         
     .EXAMPLE
@@ -1219,7 +1246,10 @@ function Initialize-PoshServerLessFunctionApp {
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
         [string]
-        $RessourceGroup
+        $RessourceGroup,
+
+        [switch] 
+        $ManagedIdentity
     )
 
     $FunctionAppObject.RessourceGroup = $RessourceGroup
@@ -1228,9 +1258,14 @@ function Initialize-PoshServerLessFunctionApp {
   
     if ( TestAzConnection ) {
         if (-not $functionAppObject.TestFunctionAppExistInAzure()) {
-            $FunctionAppObject.deployFunctionApp()
 
-            $FunctionAppObject.PublishFunctionApp()
+            if ($ManagedIdentity) {
+                $FunctionAppObject.deployFunctionApp( $true )
+                write-verbose "Deploy Function With Managed Identity"
+            } else {
+                $FunctionAppObject.deployFunctionApp( $false)
+                write-verbose "Deploy Function Without Managed Identity"
+            }         
 
             $FunctionAppObject.LoadFunctionFromAzure($FunctionAppObject.RessourceGroup)
         }

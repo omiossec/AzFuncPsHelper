@@ -1,9 +1,7 @@
 # PoshServerLess
 
 [![Build status](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_apis/build/status/AzFuncPsHelper-CI)](https://dev.azure.com/powershell-paris/AzFuncPsHelper/_build/latest?definitionId=1)
- 
-
-
+ 
 
 
 This project started as a side project to start working on OOP with a PowerShell module. I needed a subject and at this time I worked with Azure Function. 
@@ -26,7 +24,7 @@ You can check the full documentation [here](https://github.com/omiossec/AzFuncPs
 ## Release notes 
 
 You can find the release notes [here](https://github.com/omiossec/AzFuncPsHelper/blob/master/changelog.md)
- 
+
 ## Usage
 
 There are 4 main objects used in this module
@@ -45,7 +43,7 @@ There are 4 main objects used in this module
 $FunctionApp = sync-PoshServerlessFunctionApp -FunctionAppName "FunctionName" -ResourceGroupName "RGName" -LocalFunctionPath "C:\work\lab\functions\FunctionName"
 ```
 
- 
+ 
 ### Create a new Function
 
 ```powershell
@@ -56,17 +54,17 @@ $Function = new-PoshServerLessFunction -FunctionAppPath "C:\work\lab\functions\F
 
 ```powershell
 $Trigger = new-PoshServerLessFunctionTrigger -TriggerType timerTrigger -Schedule "0 */5 * * * *"
- 
- update-PoshServerLessFunctionTrigger -triggerObject $Trigger  -FunctionObject $Function
+ 
+ update-PoshServerLessFunctionTrigger -triggerObject $Trigger  -FunctionObject $Function
 ```
 
- 
+ 
 ### Add Binding 
 
 ```powershell
 $Queue = new-PoshServerLessFunctionBinding -Direction out -BindingName MyQueue – connection AzureWebStorage -queueName myAzureQueue
- 
-add-PoshServerLessFunctionBinding  -FunctionObject $Function -BindingObject $Queue
+ 
+add-PoshServerLessFunctionBinding  -FunctionObject $Function -BindingObject $Queue
 ```
 
 ### write function
@@ -85,4 +83,4 @@ add-PoshServerLessFunctionToApp -FunctionAppObject $FunctionApp -FunctionObject 
 ```powershell
 publish-PoshServerLessFunctionApp -FunctionAppObject $FunctionApp
 ```
- 
+ 

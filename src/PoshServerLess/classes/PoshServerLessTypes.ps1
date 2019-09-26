@@ -294,15 +294,13 @@ class AzFunctionsApp {
         else {
             throw "The Path of The function $($FunctionObject.FunctionName) should be the same as the the Function App"
         }
-
-
         
     }
 
   
 
  
-    [String] deployFunctionApp () {
+    [String] deployFunctionApp ([bool] $ManagedIdentity=$true) {
         try {
             
             if (  -not $this.TestFunctionAppExistInAzure() ) {
@@ -312,7 +310,33 @@ class AzFunctionsApp {
                 $jsonArmTemplatePath = Join-Path -Path $ModulePath -ChildPath "function.json"
                 $jsonArmTemplateObject = (Get-Content -Path $jsonArmTemplatePath  -Raw | ConvertFrom-Json -AsHashtable)
                 $DeploiementName = CreateUniqueString -BufferSize 15
-                New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
+
+                $DeployParam = @{
+                    
+                    "mode" = "Incremental"
+                    "ResourceGroupName" = $this.RessourceGroup
+                    "TemplateObject" = $jsonArmTemplateObject
+                    "functionAppName" = $this.FunctionAppName
+                }
+
+                if ($null -ne $this.FunctionAppLocation) {
+                    $DeployParam.add("location", $this.FunctionAppLocation)
+                }
+
+                if (! $ManagedIdentity) {
+                    $DeployParam.add("ManagedIdentity", "no")
+                } else {
+                    $DeployParam.add("ManagedIdentity", "yes")
+                }
+
+                # implemente test 
+
+                $DeployParam.add("name", $DeploiementName)
+                
+
+                New-AzResourceGroupDeployment @DeployParam
+
+                #New-AzResourceGroupDeployment -Name $DeploiementName -mode Incremental -ResourceGroupName $this.RessourceGroup -TemplateObject $jsonArmTemplateObject -functionAppName $this.FunctionAppName
                 return $DeploiementName
             }
             else {

@@ -17,6 +17,9 @@ function Initialize-PoshServerLessFunctionApp {
 
     .PARAMETER RessourceGroup
     The ressource group 
+
+    .PARAMETER ManagedIdentity
+    Indicate if the Function App need Managed Identity
     
         
     .EXAMPLE
@@ -44,7 +47,10 @@ function Initialize-PoshServerLessFunctionApp {
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
         [string]
-        $RessourceGroup
+        $RessourceGroup,
+
+        [switch] 
+        $ManagedIdentity
     )
 
     $FunctionAppObject.RessourceGroup = $RessourceGroup
@@ -53,9 +59,14 @@ function Initialize-PoshServerLessFunctionApp {
   
     if ( TestAzConnection ) {
         if (-not $functionAppObject.TestFunctionAppExistInAzure()) {
-            $FunctionAppObject.deployFunctionApp()
 
-            $FunctionAppObject.PublishFunctionApp()
+            if ($ManagedIdentity) {
+                $FunctionAppObject.deployFunctionApp( $true )
+                write-verbose "Deploy Function With Managed Identity"
+            } else {
+                $FunctionAppObject.deployFunctionApp( $false)
+                write-verbose "Deploy Function Without Managed Identity"
+            }         
 
             $FunctionAppObject.LoadFunctionFromAzure($FunctionAppObject.RessourceGroup)
         }
