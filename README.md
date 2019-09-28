@@ -34,9 +34,6 @@ There are 4 main objects used in this module
 * PoshServerLessFunctionTrigger, the representation of the trigger of a function in an Azure function App
 * PoshServerLessFunctionBinding, the representation of binding of a function in an Azure function App
 
-
-
-
 ### Load an existing Azure Functions localy
 
 ```powershell
