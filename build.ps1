@@ -13,10 +13,9 @@ param (
     $ModuleVersion=[Environment]::GetEnvironmentVariable('ModuleVersion')
 )
 
-Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
-
-Install-Module -Name Az -Force -Verbose -Scope CurrentUser
-Install-Module -Name platyPS -Force -Verbose -Scope CurrentUser
+Install-Module Az -Force -AllowClobber
+install-Module platyPS -Force -AllowClobber 
+import-module -name AZ 
 
 
 $PathSeparator = [IO.Path]::DirectorySeparatorChar
@@ -68,6 +67,7 @@ $AllJsonFiles = Get-ChildItem -Path $ModuleSourceFolder -Include 'json' -Recurse
 
 new-item -Path $BuildModulePSM1 -ItemType File
 Get-ChildItem -Path $ModuleSourceFolder -Include 'json' -Recurse -Directory | Get-ChildItem -Include *.json -File
+
 if ($AllFunctionsAndClasses) {
     Foreach ($FunctionAndClass in $AllFunctionsAndClasses) {
         Get-Content -Path $FunctionAndClass.FullName | Add-Content -Path $BuildModulePSM1

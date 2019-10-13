@@ -51,11 +51,15 @@ function new-PoshServerlessFunctionApp {
         $FunctionAppLocation,
 
         [string]
-        $FunctionAppResourceGroup
+        $FunctionAppResourceGroup,
+
+        [string]
+        [ValidateSet("csharp", "javascript", "fsharp","java", "powershell","python","typescript")]
+        $FunctionAppRuntime = "powershell"
     )
 
   
-        return [AzFunctionsApp]::new($FunctionAppName,$FunctionAppPath, $FunctionAppResourceGroup, $FunctionAppLocation)
+        return [AzFunctionsApp]::new($FunctionAppName,$FunctionAppPath, $FunctionAppResourceGroup, $FunctionAppLocation, $FunctionAppRuntime)
 
 
 }

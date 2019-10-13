@@ -15,10 +15,9 @@ import-module -name AZ
 $ModuleInformation = Import-module -Name $ModuleManifestPath -PassThru
 
 
-
 Describe "$ModuleName Testing"{
 
-
+    
 
 
     Context "$ModuleName Module manifest" {

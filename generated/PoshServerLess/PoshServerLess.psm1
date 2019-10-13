@@ -1,4 +1,287 @@
-import-module -name AZ -force -ErrorAction SilentlyContinue
+
+class AzFunction {
+
+    [string] $FunctionName
+    [string] $FunctionPath
+    [AzFunctionsTrigger] $TriggerBinding
+    [AzFunctionsBinding[]] $Binding = @()
+    [Boolean] $overwrite
+    [Boolean] $FunctionExist = $false
+    [string] $JsonFunctionBindings
+    [string] $Runtime
+
+    hidden Init([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite= $false) {
+
+        $this.overwrite = $overwrite
+        $this.FunctionName = $FunctionName
+        $this.FunctionPath = $FunctionPath
+
+        $this.TestFunctionPath();
+
+        if ($this.FunctionExist) {
+            $this.LoadFunction()
+        }
+
+       
+        
+    }
+
+    hidden [void] TestFunctionPath() {       
+        $this.FunctionExist=  test-path -Path $this.FunctionPath -ErrorAction SilentlyContinue
+    }
+
+    hidden [Boolean] TestHttpOutBinding() {
+        $HttpControl = $false
+        if ($this.TriggerBinding.TriggerType -eq "http") { 
+            foreach ($binding in $this.Binding) {
+                if (($binding.BindingDirection -eq "out") -and ($binding.BindingType -eq "http")) {
+                    $HttpControl = $true
+                }
+            }
+        } else {
+            $HttpControl = $true
+        }
+        return $HttpControl
+    }
+
+    [void] BuildJsonFunction() {
+
+        $FunctionBinding = New-Object System.Collections.ArrayList 
+
+        $FunctionBinding.add($this.TriggerBinding)
+
+        foreach ($binding in $this.Binding) {
+            $FunctionBinding.add($binding)
+        }
+
+        $this.JsonFunctionBindings = @{"disabled"=$false; "bindings"=$FunctionBinding} | ConvertTo-Json -Depth 5
+
+    }
+    
+    AzFunction ([string] $FunctionName, [string] $FunctionPath) {
+
+        $this.init($FunctionName, $FunctionPath, $false)
+
+    }
+
+    AzFunction ([string] $FunctionPath, [Boolean] $overwrite) {
+
+         
+
+        $this.init((split-path -Path $FunctionPath -Leaf),  $FunctionPath, $overwrite)
+
+    }
+
+    AzFunction ([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite) {
+
+        $this.init( $FunctionName, $FunctionPath, $overwrite)
+    }
+
+    [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
+       
+
+        $this.Binding += $BindingObject
+        
+    }
+
+    [void] AddBindings ([AzFunctionsBinding[]]$BindingObjects) {
+         foreach ($bindingObject in $BindingObjects) {
+             $this.AddBinding($bindingObject)
+         }
+    }
+
+
+    [void] AddTriger ([AzFunctionsTrigger]$Triger) {
+        $this.TriggerBinding = $Triger
+    }
+
+    [Boolean] testAzFunction () {
+        
+        
+        if (($this.Binding.count -ge 1) -and ($this.TriggerBinding.TriggerType -eq "http") ) {
+            return $true
+        }
+        elseif (($this.Binding.count -ge 0) -and ($this.TriggerBinding.TriggerType -ne "http") -and ($null  -ne $this.TriggerBinding) ) {
+            return $true
+        }
+        else {
+            return $false
+        }
+
+    }
+
+    [boolean] TestAzFuncBinding ([string] $BindingName) {
+
+        $SearchResult = $false 
+
+        foreach ($binding in $this.Binding){
+
+            if ($binding.BindingName -eq $BindingName) {
+                $SearchResult = $true 
+            }
+
+        }
+
+
+        return $SearchResult
+    }
+
+    [void] RemoveAzFuncBinding ([string] $BindingName) {
+
+        $NewBindingArray = @()
+
+        foreach ($binding in $this.Binding){
+
+            if ($binding.BindingName -ne $BindingName) {
+               
+                $NewBindingArray += $binding
+            }
+
+        }
+
+        $this.Binding = $NewBindingArray
+
+    }
+
+    [void] WriteFunction () {
+        
+        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+       
+        if ($this.testAzFunction() -and $this.TestHttpOutBinding()) {
+
+            if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
+                try {
+                     remove-item -Path $FunctionConfigFile -Force
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }
+     
+             }
+     
+             if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
+                 try {
+                     new-item -Path $this.FunctionPath -ItemType Directory
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }           
+             }
+     
+             try {
+                 new-item -ItemType File -Path $FunctionConfigFile 
+     
+                 $this.BuildJsonFunction()
+         
+                 Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
+             }
+             catch {
+                 Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+             }
+        }
+        else {  
+            throw "You can not have a function without trigger or a http trigger without a http out binding"
+        }
+
+
+
+    }
+
+    [void] LoadFunction () {
+        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+        if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
+
+            try {
+                $FunctionJsonConfig = Get-Content $FunctionConfigFile -Raw | ConvertFrom-Json
+
+                ForEach ($Binding in $FunctionJsonConfig.bindings) {
+                
+                    if ($Binding.Type -like "*Trigger") {
+    
+                        switch ($Binding.Type) {
+                            "timerTrigger" { 
+                                $this.AddTriger([timerTrigger]::new($Binding.name, $Binding.Schedule))
+                                
+                             }
+                             "queueTrigger" {
+                                
+                                $this.AddTriger([queueTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
+                             }
+                             "serviceBusTrigger" {
+                                $this.AddTriger([serviceBusTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
+    
+                             }
+                             "blobTrigger" {
+                                $this.AddTriger( [blobTrigger]::new($Binding.name, $Binding.path, $Binding.connection))
+                             }
+                             "httpTrigger" {
+                                $this.AddTriger( [httpTrigger]::new($Binding.name, $Binding.authLevel, $Binding.methods))
+                             }
+                        }
+                    }
+                    else {
+                        
+                        switch ($Binding.Type) { 
+                            "http" {
+                                $this.AddBinding([http]::new($Binding.name))
+                            }
+                            "table" {
+                                if ($Binding.Direction -eq "in") {
+                                    
+                                    [tableIn]$TableInBinding = [tableIn]::new($Binding.name, $Binding.tableName, $Binding.connection)
+    
+                                    if ($null -ne $Binding.partitionKey) {
+                                        $TableInBinding.partitionKey = $Binding.partitionKey
+                                    }
+    
+                                    if ($null -ne $Binding.rowKey) {
+                                        $TableInBinding.rowKey = $Binding.rowKey
+                                    }
+    
+                                    if ($null -ne $Binding.take) {
+                                        $TableInBinding.take = $Binding.take
+                                    }
+    
+                                    if ($null -ne $Binding.filter) {
+                                        $TableInBinding.filter = $Binding.filter
+                                    }
+    
+                                    $this.AddBinding($TableInBinding)
+                                }
+                                else {
+                                    $this.AddBinding( [table]::new($Binding.name, $Binding.tableName, $Binding.connection))
+                                }
+                            }
+                            "blob" {
+                                
+                                $this.AddBinding([blob]::new($Binding.direction, $Binding.name, $Binding.path, $binding.connection))
+                                
+                            }
+                            "queue" {
+                                $this.AddBinding([queue]::new($Binding.name, $Binding.queueName , $Binding.connection))
+    
+                            }
+    
+                        }
+    
+                    }
+    
+                }
+    
+                
+            }
+            catch [System.ArgumentException] {
+                Write-Error -Message "Error while reading the json file"
+            }
+            catch {
+                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+            }
+
+        }
+    }
+
+
+}
 
 class AzFunctionsApp {
 
@@ -26,8 +309,9 @@ class AzFunctionsApp {
     }
 
 
-    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup, [string] $AzureLocation) {
-        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup, $AzureLocation)
+    AzFunctionsApp ([string] $FunctionAppName, [string] $functionAppPath, [string] $RessourceGroup, [string] $AzureLocation, [string] $runtime) {
+        $this.init($FunctionAppName, $functionAppPath, $RessourceGroup, $AzureLocation, $runtime)
+        
     }
 
     hidden init([string] $FunctionAppName, [string] $functionAppPath) {
@@ -36,12 +320,13 @@ class AzFunctionsApp {
         $this.ListFunction()      
     }
 
-    hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup, [string] $FunctionAppLocation) {
+    hidden init([string] $FunctionAppName, [string] $functionAppPath, [string] $FunctionResourceGroup, [string] $FunctionAppLocation,  [string] $FunctionRuntime) {
 
         $this.FunctionAppName = $FunctionAppName
         $this.FunctionAppPath = join-path -path  $functionAppPath -ChildPath $this.FunctionAppName
         $this.FunctionAppLocation = $FunctionAppLocation
         $this.RessourceGroup = $FunctionResourceGroup
+        $this.FunctionRuntime = $FunctionRuntime
 
         if (!(test-path -Path $this.FunctionAppPath  -ErrorAction SilentlyContinue)) {
             try {
@@ -402,377 +687,10 @@ class AzFunctionsApp {
             Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
             return $null
         }
-
         
     }
-
     
-
-
-
-
 }
-
-
-class AzFunction {
-
-    [string] $FunctionName
-    [string] $FunctionPath
-    [AzFunctionsTrigger] $TriggerBinding
-    [AzFunctionsBinding[]] $Binding = @()
-    [Boolean] $overwrite
-    [Boolean] $FunctionExist = $false
-    [string] $JsonFunctionBindings
-
-    hidden Init([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite= $false) {
-
-        $this.overwrite = $overwrite
-        $this.FunctionName = $FunctionName
-        $this.FunctionPath = $FunctionPath
-
-        $this.TestFunctionPath();
-
-        if ($this.FunctionExist) {
-            $this.LoadFunction()
-        }
-
-       
-        
-    }
-
-    hidden [void] TestFunctionPath() {       
-        $this.FunctionExist=  test-path -Path $this.FunctionPath -ErrorAction SilentlyContinue
-    }
-
-    hidden [Boolean] TestHttpOutBinding() {
-        $HttpControl = $false
-        if ($this.TriggerBinding.TriggerType -eq "http") { 
-            foreach ($binding in $this.Binding) {
-                if (($binding.BindingDirection -eq "out") -and ($binding.BindingType -eq "http")) {
-                    $HttpControl = $true
-                }
-            }
-        } else {
-            $HttpControl = $true
-        }
-        return $HttpControl
-    }
-
-    [void] BuildJsonFunction() {
-
-        $FunctionBinding = New-Object System.Collections.ArrayList 
-
-        $FunctionBinding.add($this.TriggerBinding)
-
-        foreach ($binding in $this.Binding) {
-            $FunctionBinding.add($binding)
-        }
-
-        $this.JsonFunctionBindings = @{"disabled"=$false; "bindings"=$FunctionBinding} | ConvertTo-Json -Depth 5
-
-    }
-    
-    AzFunction ([string] $FunctionName, [string] $FunctionPath) {
-
-        $this.init($FunctionName, $FunctionPath, $false)
-
-    }
-
-    AzFunction ([string] $FunctionPath, [Boolean] $overwrite) {
-
-         
-
-        $this.init((split-path -Path $FunctionPath -Leaf),  $FunctionPath, $overwrite)
-
-    }
-
-    AzFunction ([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite) {
-
-        $this.init( $FunctionName, $FunctionPath, $overwrite)
-    }
-
-    [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
-       
-
-        $this.Binding += $BindingObject
-        
-    }
-
-    [void] AddBindings ([AzFunctionsBinding[]]$BindingObjects) {
-         foreach ($bindingObject in $BindingObjects) {
-             $this.AddBinding($bindingObject)
-         }
-    }
-
-
-    [void] AddTriger ([AzFunctionsTrigger]$Triger) {
-        $this.TriggerBinding = $Triger
-    }
-
-    [Boolean] testAzFunction () {
-        
-        
-        if (($this.Binding.count -ge 1) -and ($this.TriggerBinding.TriggerType -eq "http") ) {
-            return $true
-        }
-        elseif (($this.Binding.count -ge 0) -and ($this.TriggerBinding.TriggerType -ne "http") -and ($null  -ne $this.TriggerBinding) ) {
-            return $true
-        }
-        else {
-            return $false
-        }
-
-    }
-
-    [boolean] TestAzFuncBinding ([string] $BindingName) {
-
-        $SearchResult = $false 
-
-        foreach ($binding in $this.Binding){
-
-            if ($binding.BindingName -eq $BindingName) {
-                $SearchResult = $true 
-            }
-
-        }
-
-
-        return $SearchResult
-    }
-
-    [void] RemoveAzFuncBinding ([string] $BindingName) {
-
-        $NewBindingArray = @()
-
-        foreach ($binding in $this.Binding){
-
-            if ($binding.BindingName -ne $BindingName) {
-               
-                $NewBindingArray += $binding
-            }
-
-        }
-
-        $this.Binding = $NewBindingArray
-
-    }
-
-    [void] WriteFunction () {
-        
-        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
-       
-        if ($this.testAzFunction() -and $this.TestHttpOutBinding()) {
-
-            if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
-                try {
-                     remove-item -Path $FunctionConfigFile -Force
-                } 
-                catch {
-                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-                }
-     
-             }
-     
-             if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
-                 try {
-                     new-item -Path $this.FunctionPath -ItemType Directory
-                } 
-                catch {
-                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-                }           
-             }
-     
-             try {
-                 new-item -ItemType File -Path $FunctionConfigFile 
-     
-                 $this.BuildJsonFunction()
-         
-                 Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
-             }
-             catch {
-                 Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-             }
-        }
-        else {  
-            throw "You can not have a function without trigger or a http trigger without a http out binding"
-        }
-
-
-
-    }
-
-    [void] LoadFunction () {
-        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
-        if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
-
-            try {
-                $FunctionJsonConfig = Get-Content $FunctionConfigFile -Raw | ConvertFrom-Json
-
-                ForEach ($Binding in $FunctionJsonConfig.bindings) {
-                
-                    if ($Binding.Type -like "*Trigger") {
-    
-                        switch ($Binding.Type) {
-                            "timerTrigger" { 
-                                $this.AddTriger([timerTrigger]::new($Binding.name, $Binding.Schedule))
-                                
-                             }
-                             "queueTrigger" {
-                                
-                                $this.AddTriger([queueTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
-                             }
-                             "serviceBusTrigger" {
-                                $this.AddTriger([serviceBusTrigger]::new($Binding.name, $Binding.queueName, $Binding.connection))
-    
-                             }
-                             "blobTrigger" {
-                                $this.AddTriger( [blobTrigger]::new($Binding.name, $Binding.path, $Binding.connection))
-                             }
-                             "httpTrigger" {
-                                $this.AddTriger( [httpTrigger]::new($Binding.name, $Binding.authLevel, $Binding.methods))
-                             }
-                        }
-                    }
-                    else {
-                        
-                        switch ($Binding.Type) { 
-                            "http" {
-                                $this.AddBinding([http]::new($Binding.name))
-                            }
-                            "table" {
-                                if ($Binding.Direction -eq "in") {
-                                    
-                                    [tableIn]$TableInBinding = [tableIn]::new($Binding.name, $Binding.tableName, $Binding.connection)
-    
-                                    if ($null -ne $Binding.partitionKey) {
-                                        $TableInBinding.partitionKey = $Binding.partitionKey
-                                    }
-    
-                                    if ($null -ne $Binding.rowKey) {
-                                        $TableInBinding.rowKey = $Binding.rowKey
-                                    }
-    
-                                    if ($null -ne $Binding.take) {
-                                        $TableInBinding.take = $Binding.take
-                                    }
-    
-                                    if ($null -ne $Binding.filter) {
-                                        $TableInBinding.filter = $Binding.filter
-                                    }
-    
-                                    $this.AddBinding($TableInBinding)
-                                }
-                                else {
-                                    $this.AddBinding( [table]::new($Binding.name, $Binding.tableName, $Binding.connection))
-                                }
-                            }
-                            "blob" {
-                                
-                                $this.AddBinding([blob]::new($Binding.direction, $Binding.name, $Binding.path, $binding.connection))
-                                
-                            }
-                            "queue" {
-                                $this.AddBinding([queue]::new($Binding.name, $Binding.queueName , $Binding.connection))
-    
-                            }
-    
-                        }
-    
-                    }
-    
-                }
-    
-                
-            }
-            catch [System.ArgumentException] {
-                Write-Error -Message "Error while reading the json file"
-            }
-            catch {
-                Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-            }
-
-        }
-    }
-
-
-}
-
-
-
-class AzFunctionsTrigger {
-    
-    [string] $TriggerType
-    [string] $TriggerName
-    [string] hidden $direction = "in"
-}
-
-class queueTrigger : AzFunctionsTrigger {
-
-    [string] $queueName
-    [string] $connection 
-
-    queueTrigger ([string] $triggerName, [String] $queueName, [string] $connection) {
-
-        $this.TriggerType = "queueTrigger"
-        $this.TriggerName = $triggerName
-        $this.connection = $connection
-        $this.queueName = $queueName
-
-    }
-
-}
-
-class timerTrigger : AzFunctionsTrigger {
-
-    [string] $Schedule
-
-    timerTrigger ([string] $triggerName, [string] $Schedule) {
-        $this.TriggerType = "timerTrigger"
-        $this.TriggerName = $triggerName    
-        $this.Schedule = $Schedule 
-    }
-}
-
-class serviceBusTrigger : AzFunctionsTrigger {
-
-    [string] $queueName
-    [string] $connection
-
-    serviceBusTrigger ([string] $triggerName, [string] $queueName, [string] $Connection) {
-        $this.TriggerType = "serviceBusTrigger"
-        $this.TriggerName = $triggerName 
-        $this.queueName = $queueName
-        $this.connection = $Connection
-    }
-}
-
-class httpTrigger : AzFunctionsTrigger {
-
-    [string] $authLevel
-    [string[]] $methods = @()
-
-    httpTrigger ([string] $triggerName, [string] $authLevel, [string[]] $methods) {
-        $this.TriggerType = "httpTrigger"
-        $this.TriggerName = $triggerName 
-        $this.methods += $methods
-        $this.authLevel = $authLevel
-    }
-
-}
-
-class blobTrigger : AzFunctionsTrigger {
-
-    [string] $path
-    [string] $connection
-
-    blobTrigger ([string] $triggerName, [string] $path, [string] $connection) {
-        $this.TriggerType = "blobTrigger"
-        $this.TriggerName = $triggerName 
-        $this.connection = $connection
-        $this.path = $path
-    }
-}
-
 class AzFunctionsBinding {
 
     [string] $BindingName
@@ -781,7 +699,12 @@ class AzFunctionsBinding {
     
 
 }
-
+class AzFunctionsTrigger {
+    
+    [string] $TriggerType
+    [string] $TriggerName
+    [string] hidden $direction = "in"
+}
 class blob : AzFunctionsBinding {
     [String] $path
     [string] $connection
@@ -794,69 +717,25 @@ class blob : AzFunctionsBinding {
         $this.BindingType = "blob"
         
     }
-    
 
 }
+class blobTrigger : AzFunctionsTrigger {
 
-class http : AzFunctionsBinding {
-
-    
-    http ([string] $Name) {
-        $this.BindingName = $Name
-        $this.BindingDirection = "out"
-        $this.BindingType = "http"
-    }
-}
-
-class queue : AzFunctionsBinding {
-    [string] $queueName
+    [string] $path
     [string] $connection
 
-    queue ([string] $Name, [string] $QueuName, [string] $connection) {
-        $this.BindingName = $Name
-        $this.connection = $Connection
-        $this.queueName = $QueuName
-        $this.BindingDirection = "out"
-        $this.BindingType = "queue"
+    blobTrigger ([string] $triggerName, [string] $path, [string] $connection) {
+        $this.TriggerType = "blobTrigger"
+        $this.TriggerName = $triggerName 
+        $this.connection = $connection
+        $this.path = $path
     }
 }
+function CreateUniqueString ([int] $BufferSize= 10) {
+    $randomArray = ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count $BufferSize  | ForEach-Object {[char]$_})
 
-
-class table : AzFunctionsBinding {
-
-    
-    [string] $connection
-    [string] $tableName
-    
-    table([String]$Name, [string] $tableName, [string] $Connection) {
-        $this.BindingName = $Name
-        $this.connection = $Connection
-        $this.tableName = $tableName
-        $this.BindingDirection = "out"
-        $this.BindingType = "table"
-    }
+    return -join $randomArray
 }
-
-class tableIn : AzFunctionsBinding {
-
-    [string] $connection
-    [string] $tableName
-    [string] $partitionKey
-    [string] $rowkey
-    [int] $take
-    [string] $filter
-
-    tableIn([String]$Name, [string] $tableName, [string] $Connection) {
-        $this.BindingName = $Name
-        $this.connection = $Connection
-        $this.tableName = $tableName
-        $this.BindingDirection = "in"
-        $this.BindingType = "table"
-    }
-
-}
-
-
 
 function GetFile (
     [object[]] $CloudFilesObject, 
@@ -893,7 +772,6 @@ function GetFile (
         }
     }
 }
-
 function getMsTimeZone () {
 
     $ModulePath = $PSScriptRoot 
@@ -910,20 +788,104 @@ function getMsTimeZone () {
     }
 
 }
+class http : AzFunctionsBinding {
 
-function TestModulePresent ([string] $moduleName="Az") {
-
-    return ! $null -eq (get-module -ListAvailable | where-object name -eq $moduleName)
+    
+    http ([string] $Name) {
+        $this.BindingName = $Name
+        $this.BindingDirection = "out"
+        $this.BindingType = "http"
+    }
 }
+class httpTrigger : AzFunctionsTrigger {
 
-function CreateUniqueString ([int] $BufferSize= 10) {
+    [string] $authLevel
+    [string[]] $methods = @()
 
-    $randomArray = ((0x30..0x39) + ( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count $BufferSize  | ForEach-Object {[char]$_})
-
-    return -join $randomArray
+    httpTrigger ([string] $triggerName, [string] $authLevel, [string[]] $methods) {
+        $this.TriggerType = "httpTrigger"
+        $this.TriggerName = $triggerName 
+        $this.methods += $methods
+        $this.authLevel = $authLevel
+    }
 
 }
+import-module -name AZ -force -ErrorAction SilentlyContinue
 
+
+
+
+class queue : AzFunctionsBinding {
+    [string] $queueName
+    [string] $connection
+
+    queue ([string] $Name, [string] $QueuName, [string] $connection) {
+        $this.BindingName = $Name
+        $this.connection = $Connection
+        $this.queueName = $QueuName
+        $this.BindingDirection = "out"
+        $this.BindingType = "queue"
+    }
+}
+class queueTrigger : AzFunctionsTrigger {
+
+    [string] $queueName
+    [string] $connection 
+
+    queueTrigger ([string] $triggerName, [String] $queueName, [string] $connection) {
+
+        $this.TriggerType = "queueTrigger"
+        $this.TriggerName = $triggerName
+        $this.connection = $connection
+        $this.queueName = $queueName
+
+    }
+
+}
+class serviceBusTrigger : AzFunctionsTrigger {
+
+    [string] $queueName
+    [string] $connection
+
+    serviceBusTrigger ([string] $triggerName, [string] $queueName, [string] $Connection) {
+        $this.TriggerType = "serviceBusTrigger"
+        $this.TriggerName = $triggerName 
+        $this.queueName = $queueName
+        $this.connection = $Connection
+    }
+}
+class table : AzFunctionsBinding {
+
+    
+    [string] $connection
+    [string] $tableName
+    
+    table([String]$Name, [string] $tableName, [string] $Connection) {
+        $this.BindingName = $Name
+        $this.connection = $Connection
+        $this.tableName = $tableName
+        $this.BindingDirection = "out"
+        $this.BindingType = "table"
+    }
+}
+class tableIn : AzFunctionsBinding {
+
+    [string] $connection
+    [string] $tableName
+    [string] $partitionKey
+    [string] $rowkey
+    [int] $take
+    [string] $filter
+
+    tableIn([String]$Name, [string] $tableName, [string] $Connection) {
+        $this.BindingName = $Name
+        $this.connection = $Connection
+        $this.tableName = $tableName
+        $this.BindingDirection = "in"
+        $this.BindingType = "table"
+    }
+
+}
 Function TestAzConnection () {
 
     try {
@@ -944,6 +906,21 @@ Function TestAzConnection () {
         return $false
     }
      
+}
+
+function TestModulePresent ([string] $moduleName="Az") {
+
+    return ! $null -eq (get-module -ListAvailable | where-object name -eq $moduleName)
+}
+class timerTrigger : AzFunctionsTrigger {
+
+    [string] $Schedule
+
+    timerTrigger ([string] $triggerName, [string] $Schedule) {
+        $this.TriggerType = "timerTrigger"
+        $this.TriggerName = $triggerName    
+        $this.Schedule = $Schedule 
+    }
 }
 function add-PoshServerlessFunctionBinding 
 {
@@ -1388,11 +1365,15 @@ function new-PoshServerlessFunctionApp {
         $FunctionAppLocation,
 
         [string]
-        $FunctionAppResourceGroup
+        $FunctionAppResourceGroup,
+
+        [string]
+        [ValidateSet("csharp", "javascript", "fsharp","java", "powershell","python","typescript")]
+        $FunctionAppRuntime = "powershell"
     )
 
   
-        return [AzFunctionsApp]::new($FunctionAppName,$FunctionAppPath, $FunctionAppResourceGroup, $FunctionAppLocation)
+        return [AzFunctionsApp]::new($FunctionAppName,$FunctionAppPath, $FunctionAppResourceGroup, $FunctionAppLocation, $FunctionAppRuntime)
 
 
 }
