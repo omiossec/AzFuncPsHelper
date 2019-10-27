@@ -9,20 +9,35 @@ class AzFunction {
     [Boolean] $FunctionExist = $false
     [string] $JsonFunctionBindings
     [string] $Runtime
+    [AzFunctionsApp] $FunctionAppObject
+    
 
-    hidden Init([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite= $false) {
+    AzFunction ([string] $FunctionName, [AzFunctionsApp] $FunctionAppObject) {
+
+        $this.init($FunctionName, $FunctionAppObject, $false)
+
+    }
+
+    AzFunction ([string] $FunctionName, [AzFunctionsApp] $FunctionAppObject, [Boolean] $overwrite) {
+
+        $this.init( $FunctionName, $FunctionAppObject, $overwrite)
+    }
+
+    hidden Init([string] $FunctionName, [AzFunctionsApp] $FunctionAppObject, [Boolean] $overwrite= $false) {
 
         $this.overwrite = $overwrite
         $this.FunctionName = $FunctionName
-        $this.FunctionPath = $FunctionPath
+        $this.FunctionAppObject = $FunctionAppObject
+
+        $this.FunctionPath = join-path -path $FunctionAppObject.FunctionAppPath -childpath $FunctionName
 
         $this.TestFunctionPath();
 
+        $this.Runtime = $FunctionAppObject.FunctionRuntime
+
         if ($this.FunctionExist) {
             $this.LoadFunction()
-        }
-
-       
+        }     
         
     }
 
@@ -48,7 +63,7 @@ class AzFunction {
 
         $FunctionBinding = New-Object System.Collections.ArrayList 
 
-        $FunctionBinding.add($this.TriggerBinding)
+        [void] $FunctionBinding.add($this.TriggerBinding)
 
         foreach ($binding in $this.Binding) {
             $FunctionBinding.add($binding)
@@ -57,25 +72,22 @@ class AzFunction {
         $this.JsonFunctionBindings = @{"disabled"=$false; "bindings"=$FunctionBinding} | ConvertTo-Json -Depth 5
 
     }
+
+    [void] BuildRunFunction() {
+        
+        $FunctionBinding = New-Object System.Collections.ArrayList 
+
+        [void] $FunctionBinding.add(@{"name"=$this.TriggerBinding.TriggerName; "type"=$this.TriggerBinding.TriggerType })
+
+        foreach ($binding in $this.Binding) {
+            [void] $FunctionBinding.add(@{"name"=$binding.BindingName; "type"=$binding.BindingType })
+        }
+
+        $codeTemplate = createCodeTemplate -Language $this.Runtime -ParameterList $FunctionBinding
+        
+    }
     
-    AzFunction ([string] $FunctionName, [string] $FunctionPath) {
 
-        $this.init($FunctionName, $FunctionPath, $false)
-
-    }
-
-    AzFunction ([string] $FunctionPath, [Boolean] $overwrite) {
-
-         
-
-        $this.init((split-path -Path $FunctionPath -Leaf),  $FunctionPath, $overwrite)
-
-    }
-
-    AzFunction ([string] $FunctionName, [string] $FunctionPath, [Boolean] $overwrite) {
-
-        $this.init( $FunctionName, $FunctionPath, $overwrite)
-    }
 
     [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
        

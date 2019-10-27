@@ -34,9 +34,8 @@ function new-PoshServerlessFunction
     [CmdletBinding()]
     param(
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({Test-Path $_})]
-        [string]
-        $FunctionAppPath,
+        [AzFunctionsApp]
+        $FunctionAppObject,
 
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [string]
@@ -46,8 +45,7 @@ function new-PoshServerlessFunction
         $OverWrite 
     )
 
-    $functionPath = join-path -Path $FunctionAppPath -ChildPath $FunctionName
 
-    return [AzFunction]::new($FunctionName,$FunctionPath, $OverWrite)
+    return [AzFunction]::new($FunctionName,$FunctionAppObject, $OverWrite) 
 
 }

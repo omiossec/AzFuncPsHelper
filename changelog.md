@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Split class in multiple files
+* changing the way function is written
 
 ## Releases
 
@@ -18,4 +19,3 @@
 * V 0.0.3 add get-azFuncFunctionApp cmdlet and bug correction on trigger
 * V 0.0.2 Bug correction and unit/integration test
 * V 0.0.1 Initial release
-

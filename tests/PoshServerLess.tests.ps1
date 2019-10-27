@@ -8,7 +8,7 @@ $ModuleManifestPath = "$($BuildModulePath)\generated\$($ModuleName)\$($ModuleNam
 
 Get-Module -Name $ModuleName | remove-module
 
-Install-Module Az -Force -AllowClobber
+#Install-Module Az -Force -AllowClobber
 import-module -name AZ 
 
 

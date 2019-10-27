@@ -13,7 +13,8 @@ Read a specific Azure Function from a path
 ## SYNTAX
 
 ```
-get-PoshServerlessFunction [-FunctionPath] <String> [-OverWrite] [<CommonParameters>]
+get-PoshServerlessFunction [-FunctionName] <String> [-OverWrite] [-FuncationApp] <AzFunctionsApp>
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,8 +38,8 @@ Load the function TimerFunction from the FunctionAppFolder and tell the module t
 
 ## PARAMETERS
 
-### -FunctionPath
-{{ Fill FunctionPath Description }}
+### -FunctionName
+{{ Fill FunctionName Description }}
 
 ```yaml
 Type: String
@@ -64,6 +65,21 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FuncationApp
+{{ Fill FuncationApp Description }}
+
+```yaml
+Type: AzFunctionsApp
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 2
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

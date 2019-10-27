@@ -37,15 +37,27 @@ Load the function TimerFunction from the FunctionAppFolder and tell the module t
     [CmdletBinding()]
     param(
         [parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true, ValueFromPipeline = $true)]
-        [ValidateScript({Test-Path $_\function.json})]
         [string]
-        $FunctionPath,
+        $FunctionName,
 
         [switch]
-        $OverWrite 
+        $OverWrite=$false,
+
+        [parameter(Mandatory = $true)]
+        [AzFunctionsApp] $FuncationApp
 
     )
+    try {
 
-    return [AzFunction]::new($FunctionPath, $OverWrite)
+
+
+        return [AzFunction]::new($FunctionName, $FuncationApp, $OverWrite)
+
+    }
+    catch {
+
+    }
+
+    
 
 }

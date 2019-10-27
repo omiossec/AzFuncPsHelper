@@ -13,7 +13,7 @@ Create a new azure function object
 ## SYNTAX
 
 ```
-new-PoshServerlessFunction [-FunctionAppPath] <String> [-FunctionName] <String> [-OverWrite]
+new-PoshServerlessFunction [-FunctionAppObject] <AzFunctionsApp> [-FunctionName] <String> [-OverWrite]
  [<CommonParameters>]
 ```
 
@@ -32,11 +32,11 @@ create a new azFunction Object
 
 ## PARAMETERS
 
-### -FunctionAppPath
-Specifies the function App path
+### -FunctionAppObject
+{{ Fill FunctionAppObject Description }}
 
 ```yaml
-Type: String
+Type: AzFunctionsApp
 Parameter Sets: (All)
 Aliases:
 
