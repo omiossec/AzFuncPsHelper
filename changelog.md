@@ -3,7 +3,7 @@
 ## Unreleased
 
 * Split class in multiple files
-* changing the way function is written
+* [Breaking Change] the new-PoshServerLessFunction do not accept -functionPath as parameter instead it use a FunctionAppObject
 
 ## Releases
 

@@ -14,13 +14,13 @@ FunctionAppLocation and FunctionAppResourceGroup are optionnal but you will need
 
 If your function app exist in Azure you can load data from Azure like App Seeting by using 
 
-```powershell 
+```powershell
 Resolve-PoshServerlessFunctionApp -FunctionAppObject $FunctionApp -ResourceGroupName MyRg
 ```
 
 Now you can publish information to your function app 
 
-```
+```powershell
 Publish-PoshServerLessFunctionApp -FunctionAppObject $myFunctionApp
 ```
 
@@ -34,12 +34,13 @@ $functionApp = get-PoshServerlessFunctionApp -FunctionAppPath "C:\work\formation
 
 You can load data from Azure like App Seeting by using
 
-```powershell 
+```powershell
 Resolve-PoshServerlessFunctionApp -FunctionAppObject $FunctionApp -ResourceGroupName MyRg
 ```
-You can no retreive some value like location 
 
-```powershell 
+You can no retreive some value like location
+
+```powershell
 $functionApp.FunctionAppLocation
 ```
 
@@ -49,12 +50,13 @@ Or App Settings
 $functionApp.FunctionAppSettings
 ```
 
-Now you can publish information to your function app 
+Now you can publish information to your function app
 
 ```powershell
 Publish-PoshServerLessFunctionApp -FunctionAppObject $myFunctionApp
 ```
-You can setup the Function TimeZone 
+
+You can setup the Function TimeZone
 
 ```powershell
 Set-PoshServerlessFunctionAppTimezone -FunctionAppObject $functionApp -TimeZone 'Romance Standard Time'
@@ -73,7 +75,7 @@ $functionApp =  sync-PoshServerlessFunctionApp -FunctionAppName "poshserverlessa
 in order to add a function to an AzFunctionsApp object we need to create an AzFunction object 
 
 ```powershell
-$MyFunction = new-PoshServerlessFunction -FunctionAppPath "C:\work\formations\poshserverlessa001" -FunctionName "MyFunction"
+$MyFunction = new-PoshServerlessFunction -FunctionAppObject $FunctionApp -FunctionName "MyFunction"
 ```
 
 
@@ -108,6 +110,7 @@ We can now add the function object to the app
 ```powershell
 add-PoshServerLessFunctionToApp -FunctionObject $MyFunction -FunctionAppObject $functionApp
 ```
+
 This will create the function inside the folder with the function.json (but not the run.ps1 file)
 
 finaly you can publish the FunctionApp

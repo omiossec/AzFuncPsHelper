@@ -40,14 +40,14 @@ There are 4 main objects used in this module
 ### Load an existing Azure Functions localy
 
 ```powershell
-$FunctionApp = sync-PoshServerlessFunctionApp -FunctionAppName "FunctionName" -ResourceGroupName "RGName" -LocalFunctionPath "C:\work\lab\functions\FunctionName"
+$FunctionApp = sync-PoshServerlessFunctionApp -FunctionAppName "FunctionAppName" -ResourceGroupName "RGName" -LocalFunctionPath "C:\work\lab\functions\FunctionName"
 ```
 
  
 ### Create a new Function
 
 ```powershell
-$Function = new-PoshServerLessFunction -FunctionAppPath "C:\work\lab\functions\FunctionName" -FunctionName "TimerFunction"
+$Function = new-PoshServerLessFunction -FunctionAppObject $FunctionApp  -FunctionName "TimerFunction"
 ``` 
 
 ### Add a Trigger to the function
@@ -68,17 +68,18 @@ add-PoshServerLessFunctionBinding  -FunctionObject $Function -BindingObject $Que
 ```
 
 ### write function
-```powershell
-  $Function  | write-PoshServerlessFunction 
-  ```
 
-### Update The Function App 
+```powershell
+  $Function  | write-PoshServerlessFunction
+```
+
+### Update The Function App
 
 ```powershell
 add-PoshServerLessFunctionToApp -FunctionAppObject $FunctionApp -FunctionObject $function
 ```
 
-### Publish the function app 
+### Publish the function app
 
 ```powershell
 publish-PoshServerLessFunctionApp -FunctionAppObject $FunctionApp
