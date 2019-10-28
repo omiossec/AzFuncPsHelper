@@ -10,6 +10,7 @@ class AzFunction {
     [string] $JsonFunctionBindings
     [string] $Runtime
     [AzFunctionsApp] $FunctionAppObject
+    [string] $codeTemplate
     
 
     AzFunction ([string] $FunctionName, [AzFunctionsApp] $FunctionAppObject) {
@@ -83,10 +84,29 @@ class AzFunction {
             [void] $FunctionBinding.add(@{"name"=$binding.BindingName; "type"=$binding.BindingType })
         }
 
-        $codeTemplate = createCodeTemplate -Language $this.Runtime -ParameterList $FunctionBinding
+        $this.codeTemplate = createCodeTemplate -Language $this.Runtime -ParameterList $FunctionBinding
+
+
+        switch ($this.Runtime) {
+            "powershell" { 
+                    $FunctionRunFileName = "run.ps1"
+             }           
+             Default {
+                $FunctionRunFileName = "run.ps1"
+             }
+        }
+  
+
+        $FunctionRunFile = join-path -Path $this.FunctionPath -ChildPath $FunctionRunFileName
+
+        if ((test-path -Path $FunctionRunFile) -AND  $this.overwrite ) {
+            Set-Content -Path $FunctionRunFile -Value $this.codeTemplate -Encoding utf8
+        } elseif (!(test-path -Path $FunctionRunFile)){
+            new-item -Path $FunctionRunFile -Type File | Set-Content -Path $FunctionRunFile -Value $this.codeTemplate -Encoding utf8
+        }
         
     }
-    
+
 
 
     [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
