@@ -143,18 +143,18 @@ new-item -path $fakeFunctionBinPath -ItemType Directory
 new-item -path $fakeFUnctionAppHostJson -ItemType File
 Set-Content $fakeFunctionJsonPath -value $FakeFunctionJsonData -Encoding utf8
 
-$FunctionFakeObject = get-PoshServerlessFunction -FunctionPath $fakeFunctionPath 
+$FunctionApp =  new-PoshServerlessFunctionApp -FunctionAppPath $fakeFunctionAppPath -FunctionAppName "MyFunction01" -FunctionAppLocation "WestEurope" -FunctionAppResourceGroup "MyRg"
 
             It "Should not Throw when create a new function" {
-                { new-PoshServerlessFunction -FunctionAppPath $fakeFunctionAppPath -FunctionName "FakeFunction2" } | Should -not -Throw 
+                { new-PoshServerLessFunction -FunctionAppObject $FunctionApp  -FunctionName "TimerFunction" } | Should -not -Throw 
             }
 
             it "Should not throw when reading an existing function" {
-                { get-PoshServerlessFunction -FunctionPath $fakeFunctionPath } | Should -not -Throw 
+                { get-PoshServerlessFunction -FunctionName TimerFunction -FuncationApp $FunctionApp } | Should -not -Throw 
             }
 
             it "get-PoshServerlessFunction return a AzFunction Object " {
-                $FunctionFakeObject.getType()   | Should -be "AzFunction"
+                $FunctionApp.getType()   | Should -be "AzFunctionApp"
             }
              
             it "get-PoshServerlessFunctionBinding  return the correct number of binding " {

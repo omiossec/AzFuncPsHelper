@@ -41,7 +41,7 @@ Load the function TimerFunction from the FunctionAppFolder and tell the module t
         $FunctionName,
 
         [switch]
-        $OverWrite=$false,
+        $OverWrite,
 
         [parameter(Mandatory = $true)]
         [AzFunctionsApp] $FuncationApp

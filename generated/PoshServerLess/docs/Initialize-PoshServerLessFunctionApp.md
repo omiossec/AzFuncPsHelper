@@ -14,7 +14,7 @@ Create an Azure Function App in Azure And deploy the current function App object
 
 ```
 Initialize-PoshServerLessFunctionApp [-FunctionAppObject] <AzFunctionsApp> [-RessourceGroup] <String>
- [-ManagedIdentity] [<CommonParameters>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -69,21 +69,6 @@ Required: True
 Position: 2
 Default value: None
 Accept pipeline input: True (ByPropertyName, ByValue)
-Accept wildcard characters: False
-```
-
-### -ManagedIdentity
-Indicate if the Function App need Managed Identity
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
 Accept wildcard characters: False
 ```
 

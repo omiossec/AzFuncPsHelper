@@ -255,6 +255,7 @@
         },
         {
             "name": "[variables('storageAccountName')]",
+            "comments": "This storage account used by the function App",
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2018-07-01",
             "location": "[parameters('location')]",

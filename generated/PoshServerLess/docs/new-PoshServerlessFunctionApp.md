@@ -14,8 +14,7 @@ Create a new azure function App object and the function app file
 
 ```
 new-PoshServerlessFunctionApp [-FunctionAppPath] <String> [-FunctionAppName] <String>
- [[-FunctionAppLocation] <String>] [[-FunctionAppResourceGroup] <String>] [[-FunctionAppRuntime] <String>]
- [<CommonParameters>]
+ [[-FunctionAppLocation] <String>] [[-FunctionAppResourceGroup] <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -90,21 +89,6 @@ Aliases:
 Required: False
 Position: 4
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FunctionAppRuntime
-{{ Fill FunctionAppRuntime Description }}
-
-```yaml
-Type: String
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: 5
-Default value: Powershell
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

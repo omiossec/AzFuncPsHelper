@@ -108,6 +108,50 @@ class AzFunction {
     }
 
 
+    [void] WriteFunction () {
+        
+        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
+       
+        if ($this.testAzFunction() -and $this.TestHttpOutBinding()) {
+
+            if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
+                try {
+                     remove-item -Path $FunctionConfigFile -Force
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }
+     
+             }
+     
+             if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
+                 try {
+                     new-item -Path $this.FunctionPath -ItemType Directory
+                } 
+                catch {
+                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+                }           
+             }
+     
+             try {
+                 new-item -ItemType File -Path $FunctionConfigFile 
+     
+                 $this.BuildJsonFunction()
+         
+                 Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
+
+                 $this.BuildRunFunction()
+             }
+             catch {
+                 Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
+             }
+        }
+        else {  
+            throw "You can not have a function without trigger or a http trigger without a http out binding"
+        }
+
+    }
+
 
     [void] AddBinding ([AzFunctionsBinding]$BindingObject) {
        
@@ -175,49 +219,7 @@ class AzFunction {
 
     }
 
-    [void] WriteFunction () {
-        
-        $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
-       
-        if ($this.testAzFunction() -and $this.TestHttpOutBinding()) {
 
-            if ((test-path -Path $FunctionConfigFile -ErrorAction SilentlyContinue)) {
-                try {
-                     remove-item -Path $FunctionConfigFile -Force
-                } 
-                catch {
-                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-                }
-     
-             }
-     
-             if (!(test-path -Path $this.FunctionPath  -ErrorAction SilentlyContinue)) {
-                 try {
-                     new-item -Path $this.FunctionPath -ItemType Directory
-                } 
-                catch {
-                     Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-                }           
-             }
-     
-             try {
-                 new-item -ItemType File -Path $FunctionConfigFile 
-     
-                 $this.BuildJsonFunction()
-         
-                 Set-Content -Value $this.JsonFunctionBindings -Path $FunctionConfigFile -Encoding utf8
-             }
-             catch {
-                 Write-Error -Message " Exception Type: $($_.Exception.GetType().FullName) $($_.Exception.Message)"
-             }
-        }
-        else {  
-            throw "You can not have a function without trigger or a http trigger without a http out binding"
-        }
-
-
-
-    }
 
     [void] LoadFunction () {
         $FunctionConfigFile = join-path -Path $this.FunctionPath -ChildPath "function.json"
