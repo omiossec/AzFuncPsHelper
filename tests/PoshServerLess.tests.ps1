@@ -9,7 +9,7 @@ $ModuleManifestPath = "$($BuildModulePath)\generated\$($ModuleName)\$($ModuleNam
 Get-Module -Name $ModuleName | remove-module
 
 #Install-Module Az -Force -AllowClobber
-import-module -name AZ 
+#import-module -name AZ 
 
 
 $ModuleInformation = Import-module -Name $ModuleManifestPath -PassThru
@@ -57,7 +57,7 @@ Describe "$ModuleName Testing"{
 
     }
     InModuleScope $ModuleName {
-        Context "$($ModuleName) Cmdlet testing" {
+        Context "$($ModuleName) integration test" {
 
 
 
@@ -144,6 +144,9 @@ new-item -path $fakeFUnctionAppHostJson -ItemType File
 Set-Content $fakeFunctionJsonPath -value $FakeFunctionJsonData -Encoding utf8
 
 $FunctionApp =  new-PoshServerlessFunctionApp -FunctionAppPath $fakeFunctionAppPath -FunctionAppName "MyFunction01" -FunctionAppLocation "WestEurope" -FunctionAppResourceGroup "MyRg"
+$Function = new-PoshServerlessFunction -FunctionAppObject $FunctionApp -FunctionName MyTest2 -OverWrite 
+
+$trigger = new-PoshServerlessFunctionTrigger -TriggerType httpTrigger -TriggerName testHttp -methods @("POST")
 
             It "Should not Throw when create a new function" {
                 { new-PoshServerLessFunction -FunctionAppObject $FunctionApp  -FunctionName "TimerFunction" } | Should -not -Throw 
@@ -153,35 +156,74 @@ $FunctionApp =  new-PoshServerlessFunctionApp -FunctionAppPath $fakeFunctionAppP
                 { get-PoshServerlessFunction -FunctionName TimerFunction -FuncationApp $FunctionApp } | Should -not -Throw 
             }
 
-            it "get-PoshServerlessFunction return a AzFunction Object " {
-                $FunctionApp.getType()   | Should -be "AzFunctionApp"
+            it "Function App is a AzFunction Object " {
+                $FunctionApp.getType().toString()  | Should -be "AzFunctionsApp"
             }
+
+            it 'Do not throw when creating an http Binding' {
+                {  new-PoshServerlessFunctionBinding -Direction "out" -BindingName "outHttp" -BindingType "http" }  | Should -not -Throw 
+            }
+
+            it 'Do not throw when creating an http Trigger' {
+                { new-PoshServerlessFunctionTrigger -TriggerType httpTrigger -TriggerName testHttp -methods @("POST") }  | Should -not -Throw 
+            }
+
+            it 'Do not throw when creating an http Binding' {
+                {  new-PoshServerlessFunctionBinding -Direction "out" -BindingName "outHttp" -BindingType "http" }  | Should -not -Throw 
+            }
+
+            it 'Do not throw when creating a queue Binding' {
+                { new-PoshServerlessFunctionBinding -Direction "out" -BindingName "MyBinding" -BindingType "queue" -queueName "test" -connection "MyStorage" }  | Should -not -Throw 
+            }
+            
+            $Function = new-PoshServerlessFunction -FunctionAppObject $FunctionApp -FunctionName MyTest2 -OverWrite 
+
+            $trigger = new-PoshServerlessFunctionTrigger -TriggerType httpTrigger -TriggerName testHttp -methods @("POST")
+            $outHttp = new-PoshServerlessFunctionBinding -Direction "out" -BindingName "outHttp" -BindingType "http" 
+            $outQueue = new-PoshServerlessFunctionBinding -Direction "out" -BindingName "MyBinding" -BindingType "queue" -queueName "test" -connection "MyStorage"
+        
+            it "trigger should not be null" {
+                $trigger | Should -Not -BeNullOrEmpty 
+            }
+
+            it "outHttp should not be null" {
+                $outHttp | Should -Not -BeNullOrEmpty 
+            }
+
+            it "outQueue should not be null" {
+                $outQueue | Should -Not -BeNullOrEmpty 
+            }
+
+            update-PoshServerlessFunctionTrigger -triggerObject $trigger -FunctionObject $Function
+            add-PoshServerlessFunctionBinding -BindingObject $outHttp -FunctionObject $Function
+            add-PoshServerlessFunctionBinding -BindingObject $outQueue -FunctionObject $Function
+
              
             it "get-PoshServerlessFunctionBinding  return the correct number of binding " {
-                (get-PoshServerlessFunctionBinding -FunctionObject  $FunctionFakeObject).count | Should -be 6
+                (get-PoshServerlessFunctionBinding -FunctionObject  $Function).count | Should -be 2
             }
 
             it "get-PoshServerlessFunctionTrigger  return the correct value " {
-                (get-PoshServerlessFunctionTrigger -FunctionObject  $FunctionFakeObject).TriggerType | Should -be "timerTrigger"
+                (get-PoshServerlessFunctionTrigger -FunctionObject  $Function).TriggerType | Should -be "httpTrigger"
             }
 
             it " new-PoshServerlessFunction  return a AzFunction Object" {
-                (new-PoshServerlessFunction  -FunctionAppPath  $fakeFunctionAppPath -FunctionName "test2").getType() |  Should -be "AzFunction"
+                (new-PoshServerlessFunction -FunctionAppObject $FunctionApp -FunctionName "TEST3" -OverWrite ).getType() |  Should -be "AzFunction"
             }
 
             it " get-PoshServerlessFunctionApp Should not Throw" {
-                { get-PoshServerlessFunctionApp -FunctionAppName "Test"  -FunctionAppPath $fakeFunctionAppPath } |  Should -not -Throw 
+                { get-PoshServerlessFunctionApp -FunctionAppName "MyFunction01"  -FunctionAppPath $fakeFunctionAppPath } |  Should -not -Throw 
             }
 
-            $FunctionAppObject = get-PoshServerlessFunctionApp -FunctionAppName "Test"  -FunctionAppPath $fakeFunctionAppPath
+            add-PoshServerLessFunctionToApp -FunctionObject $Function -FunctionAppObject $FunctionApp
 
 
             it "get-PoshServerlessFunctionApp  return a AzFunctionsApp Object" {
-                $FunctionAppObject.getType() |  Should -be "AzFunctionsApp"
+                $FunctionApp.getType() |  Should -be "AzFunctionsApp"
             }
 
             it "get-PoshServerlessFunctionApp  return 1 Function" {
-                $FunctionAppObject.azfunctions.Count |  Should -be 1
+                $FunctionApp.azfunctions.Count |  Should -be 1
             }
 
             it "new-PoshServerlessFunctionTrigger with QueueTrigger Should not Throw" {
@@ -196,92 +238,7 @@ $FunctionApp =  new-PoshServerlessFunctionApp -FunctionAppPath $fakeFunctionAppP
                 { new-PoshServerlessFunctionTrigger -TriggerType timerTrigger -TriggerName test -Schedule "test" } |  Should -not -Throw 
             }
 
-            it "new-PoshServerlessFunctionTrigger with httpTrigger Should not Throw" {
-                { new-PoshServerlessFunctionTrigger -TriggerType httpTrigger -TriggerName test -methods @("post","get") } |  Should -not -Throw 
-            }
-
-            it "test-PoshServerlessFunctionBinding with outputQueueItem and $FunctionFakeObject Should not Throw" {
-                { test-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem" } |  Should -not -Throw 
-            }
-
-
-            it "test-PoshServerlessFunctionBinding with outputQueueItem and $FunctionFakeObject return $true" {
-                (test-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem") |  Should -be $true
-            }
-
-            it "test-PoshServerlessFunctionBinding with fakeBinding and $FunctionFakeObject return $false" {
-                (test-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "fakeBinding") |  Should -be $false
-            }
-
-            it "remove-PoshServerlessFunctionBinding with FakeBinding and $FunctionFakeObject Should  Throw" {
-                { remove-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "FakeBinding" } |  Should -Throw 
-            }
-
-            # Removing a Binding
-
-            it "remove-PoshServerlessFunctionBinding with outputQueueItem and $FunctionFakeObject Should not Throw" {
-                { remove-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "outputQueueItem" } |  Should -not -Throw 
-            }
-
-            it "remove-PoshServerlessFunctionBinding with NotExistingBinding and $FunctionFakeObject Should not Throw" {
-                { remove-PoshServerlessFunctionBinding -FunctionObject $FunctionFakeObject -BindingName "NotExistingBinding" } |  Should  -Throw 
-            }
-
-
-            
-
-            it "get-PoshServerlessFunctionBinding  should return the correct number of binding, 5 after " {
-                (get-PoshServerlessFunctionBinding -FunctionObject  $FunctionFakeObject).count | Should -be 5
-            }
-
-            # create a new function
-            $NewFakeFunction = new-PoshServerlessFunction -FunctionAppPath $fakeFunctionAppPath -FunctionName "TestFunc02"
-
-
-
-            it "Generate and error When try to create a function without any trigger" {
-                {  write-PoshServerlessFunction  -FunctionObject $NewFakeFunction } | Should  -Throw 
-            }
-
-            $trigger = new-PoshServerlessFunctionTrigger -TriggerType httpTrigger -TriggerName testHttp -methods @("POST")
-
-            
-
-            it "Generate and error When try to create an HTTP function without a out binding" {
-                {  write-PoshServerlessFunction  -FunctionObject $NewFakeFunction } | Should -Throw 
-            }
-
-            update-PoshServerlessFunctionTrigger -triggerObject $trigger -FunctionObject $NewFakeFunction
-
-            it "Doesn't fail when creating an Http out binding" {
-                {$HttpOutBinding = new-PoshServerlessFunctionBinding -Direction "out" -BindingName "outHttp" -BindingType "http"} | Should -not -Throw 
-            }
-
-
-
-            it "do not generate and error When try to create a function with trigger" {
-                {  write-PoshServerlessFunction  -FunctionObject $NewFakeFunction } | Should -not -Throw 
-            }
-
-            
-            it "do not generate and error When trying to create a new function app " {
-                { new-PoshServerlessFunctionApp -FunctionAppPath $NewFunctionPath -FunctionAppName "NewFunctionApp" -FunctionAppLocation "WestEurope" -FunctionAppResourceGroup "MyRg" } | Should -not -Throw 
-            }
-
-   
-
-            it "New Function App Should get a Host.json " {
-                test-path -Path $NewFunctionPathHostJson -ErrorAction SilentlyContinue| Should -BeTrue
-            }
-
-            it "New Function App Should get a profile.ps1 " {
-                test-path -Path $NewFunctionPathProfile -ErrorAction SilentlyContinue | Should -BeTrue
-            }
-
-            it "New Function App Should get a requirements.psd1 " {
-                test-path -Path $NewFunctionPathEequirements -ErrorAction SilentlyContinue | Should -BeTrue
-            }
-            
+        
         }
 
     }

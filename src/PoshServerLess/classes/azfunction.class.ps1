@@ -12,6 +12,11 @@ class AzFunction {
     [AzFunctionsApp] $FunctionAppObject
     [string] $codeTemplate
     
+    <# 
+    Azfunction ([string] $functionName, [string] $functionPath) {
+
+    }
+    #>
 
     AzFunction ([string] $FunctionName, [AzFunctionsApp] $FunctionAppObject) {
 
@@ -86,14 +91,12 @@ class AzFunction {
 
         $this.codeTemplate = createCodeTemplate -Language $this.Runtime -ParameterList $FunctionBinding
 
+        $FunctionRunFileName = "run.ps1"
 
         switch ($this.Runtime) {
             "powershell" { 
                     $FunctionRunFileName = "run.ps1"
              }           
-             Default {
-                $FunctionRunFileName = "run.ps1"
-             }
         }
   
 
@@ -102,7 +105,8 @@ class AzFunction {
         if ((test-path -Path $FunctionRunFile) -AND  $this.overwrite ) {
             Set-Content -Path $FunctionRunFile -Value $this.codeTemplate -Encoding utf8
         } elseif (!(test-path -Path $FunctionRunFile)){
-            new-item -Path $FunctionRunFile -Type File | Set-Content -Path $FunctionRunFile -Value $this.codeTemplate -Encoding utf8
+            new-item -Path $FunctionRunFile -Type File 
+            Set-Content -Path $FunctionRunFile -Value $this.codeTemplate -Encoding utf8 -PassThru
         }
         
     }

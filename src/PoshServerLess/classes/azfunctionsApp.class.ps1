@@ -156,11 +156,11 @@ class AzFunctionsApp {
             if (test-path -Path $this.FunctionAppPath -ErrorAction SilentlyContinue) {
                 $this.FunctionAppExistLocaly = $true
                 $FunctionList = get-childitem -Path $this.FunctionAppPath -Exclude @("microsoft","bin","obj", "modules") -Directory
-            
+
                 foreach ($function in $FunctionList) {
                     
                     $functionPath = join-path -Path $this.FunctionAppPath -ChildPath $function.name
-                    $this.Azfunctions += [AzFunction]::new( $FunctionPath, $true)
+                    $this.Azfunctions += [AzFunction]::new( $function.name, $this,  $true)
     
                 }
     
